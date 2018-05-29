@@ -10,59 +10,25 @@ gradeDistributionUI <- function(id, label = "Grade Distribution") {
   
   tagList(
     plotOutput(ns("GradeDist")),
-    verbatimTextOutput(ns("status")),
-    sliderInput(ns("DateRange"), "Date Range", min = minTerm, 
-                max = maxTerm, 
-                value = c(minTerm, maxTerm), 
-                dragRange = TRUE,
-                timeFormat = "%b %Y")
+    verbatimTextOutput(ns("status"))
   )
 }
 
-gradeDistribution <- function(input, output, session, course_data, groupedIDS) {
+gradeDistribution <- function(input, output, session, course_data, groupBy) {
   vals <- reactiveValues(courseInstances = NULL, groupingVar = NULL)
   
-  observeEvent(course_data(), {
-    if (is.data.frame(course_data())) {
-      terms <- unique(course_data()$Banner_Term)
-      minTerm <- min(terms, na.rm = TRUE)
-      maxTerm <- max(terms, na.rm = TRUE)
-      if (!is.na(minTerm) & !is.na(maxTerm)) {
-        updateSliderInput(session, "DateRange", 
-                          min = minTerm, 
-                          max = maxTerm,
-                          value = c(minTerm, maxTerm))
-      }
-    }
-  })
-  
-  observeEvent(groupedIDS(), {
-    .groupedBy <- groupedIDS()
-    message("adding grouping variable ", paste(.groupedBy$name, collapse = ", "))
-    vals$courseInstances <- vals$courseInstances %>% 
-      mutate(group = if_else(IDS %in% .groupedBy$IDS, .groupedBy$name, "other"))
-    vals$groupingVar = "group"
-  })
-  
-  observeEvent(input$DateRange, {
-    vals$courseInstances <- filter(course_data(), 
-            Banner_Term >= input$DateRange[1],
-            Banner_Term <= input$DateRange[2])
-  })
-  
+  course_first_instance <- eventReactive(course_data(),
+                                         {    
+                                           left_join(course_data(), 
+                                                     first_instance(course_data()),
+                                                     by = "IDS") %>% filter(Banner_Term == First_Taken)
+                                           })
+
   #output$status <- renderPrint(paste0("grouping by ", paste(groupedIDS()$IDS, collapse = ", ")))
   
   output$GradeDist <- renderPlot({
-    .courseInstances <- vals$courseInstances
-    #if (length(.groupedBy$IDS)) {
-      #.courseInstances <- .courseInstances %>% mutate(
-      #  group = if_else(IDS %in% .groupedBy$IDS, .groupedBy$name, "other")
-      #)
-    #}
-    if (nrow(.courseInstances) > 0) {
-      grade_distribution(.courseInstances, vals$groupingVar)
-    }
+    grade_distribution(course_first_instance(), NULL)
   })
   
-  return(reactive(input$DateRange))
+  #return(reactive(input$DateRange))
 }

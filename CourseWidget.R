@@ -8,7 +8,11 @@ courseWidgetUI <- function(id, label = "Course Preview", header = NULL) {
   tagList(
     h2(textOutput(ns("Title"))),
     hr(),
-    DT::dataTableOutput(ns("CourseTable"))#,
+    fluidRow(
+      column(4, DT::dataTableOutput(ns("CourseTable"))),
+      column(8, plotOutput(ns("GradeDist")))
+      )
+    #,
     #verbatimTextOutput(ns("status"))
   )
   
@@ -19,43 +23,29 @@ courseWidgetUI <- function(id, label = "Course Preview", header = NULL) {
 }
 
 # Module Server Function
-courseWidget <- function(input, output, session, title, course_data, course_table, term_range) {
+courseWidget <- function(input, output, session, course_data, .when, profile_course) {
   ns <- session$ns
   vals = reactiveValues(selected = NULL, courseInstances = NULL)
-  #vals$course_data <- course_data
-  
-  #observe({
-  #  vals$course_table <- course_table()
+
+  #selected <- eventReactive(input$CourseTable_rows_selected, {
+  #  s <- input$CourseTable_rows_selected
+  #  course_table()[s,]$Grade_Course
   #})
   
-  selected <- eventReactive(input$CourseTable_rows_selected, {
-    s <- input$CourseTable_rows_selected
-    message("Number of rows selected: ", length(s))
-    if (length(s)) {
-      course_table()[s,]$Grade_Course
-    } else {
-      NA
-    }
-  })
-  
-    observeEvent(input$CourseTable_rows_selected, {
-    if (length(input$CourseTable_rows_selected) == 1) {
+  courseInstances <- eventReactive(
+    length(input$CourseTable_rows_selected) > 0, 
+    {
       vals$selected <- course_table()[input$CourseTable_rows_selected,]$Grade_Course
-    } else {
-      vals$selected <- "none"
-    }
-    termRange <- term_range()
-    vals$courseInstances = filter(course_data, Grade_Course == vals$selected, 
+      filter(course_data(), 
+                                  Grade_Course == vals$selected, 
                                   !is.null(Grade_Final_Grade), 
-                                  Grade_Final_Grade %in% valid_grades,
-                                  Banner_Term >= termRange[1],
-                                  Banner_Term <= termRange[2])
+                                  Grade_Final_Grade %in% valid_grades)
 
     #message("Ignoring date range ", paste(vals$dateRange, collapse =", "))
-    showModal(modalDialog(
-      plotOutput(ns("GradeDist")),
-      footer = actionButton(ns("dismiss_modal"), label = "Dismiss")
-    ))
+    #showModal(modalDialog(
+    #  plotOutput(ns("GradeDist")),
+    #  footer = actionButton(ns("dismiss_modal"), label = "Dismiss")
+    #))
   })
   
   observeEvent(input$dismiss_modal, {
@@ -64,21 +54,42 @@ courseWidget <- function(input, output, session, title, course_data, course_tabl
     #vals$courseInstances <- NA
   })
   
+  course_table <- eventReactive({
+    isTruthy(course_data()) & isTruthy(profile_course())
+  }, {
+    message("calculating course_table with ", nrow(course_data()), " rows of course data and ", n_distinct(profile_course()), " unique IDS in the profile course.")
+    profileIDS <- distinct(profile_course(), IDS)$IDS
+    Ntotal <- length(profileIDS)
+    course_data() %>%
+      filter(when == .when,
+             IDS %in% profileIDS) %>%
+      group_by(Grade_Course) %>%
+      summarize(Title = first(Grade_Course_Title),
+                N = n_distinct(IDS),
+                pct = N / Ntotal) %>%
+      arrange(-N) %>% filter(pct > 0.10)    
+  })
+  
   output$CourseTable <- {
-     DT::renderDataTable(datatable(course_table(), 
-                                   options = list(searching = FALSE, lengthChange = FALSE),
+    DT::renderDataTable({
+      message("Rendering output$CourseTable for ", session$id, " when = ", .when)
+      if (is.null(course_data())) return()
+      datatable(course_table(),
+                                   options = list(pageLength = 5, searching = FALSE, lengthChange = FALSE),
                                    rownames = FALSE,
-                                   selection = "single") %>% formatPercentage('pct', 2), 
+                                   selection = "single") %>% formatPercentage('pct', 2)},
                                             server = FALSE)
   }
   #output$status <- renderPrint(selectedCourse())
   
-  output$Title <- renderText(title)
-  output$status <- renderPrint(paste0(selected(), " selected"))
+  #output$status <- renderPrint(paste0(selected(), " selected"))
   
   output$GradeDist <- renderPlot({
-    if (!is.na(vals$courseInstances) & nrow(vals$courseInstances) > 0) grade_distribution(vals$courseInstances)
+    data <- courseInstances()
+    if (!is.null(data) & nrow(data) > 0) {
+      grade_distribution(data)
+    }
   })
     
-  return(selected)
+  return(reactive(vals$selected))
 }

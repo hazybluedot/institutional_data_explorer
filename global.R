@@ -1,15 +1,12 @@
 library(shiny)
 library(DT)
+library(tidyverse)
 
 setwd("~/ENGE/Studies/Investing in Instructors/III_Dashboard")
 
 course_fname <- "../data/course_data.rda"
 student_fname <- "../data/student_data.rda"
 degree_fname <- "../data/degrees_dummyIDs.rda"
-
-if(!require(tidyverse)) install.packages("tidyverse") # includes dplyr and tidyr
-if(!require(reshape2)) install.packages("reshape2")
-if(!require(ggalluvial)) install.packages("ggalluvial")
 
 params <- list(ncourses = 5, 
                ndegrees = 8)
@@ -60,7 +57,7 @@ first_instance <- function(course_instances) {
     group_by(IDS) %>% 
     arrange(Banner_Term) %>% 
     summarize(First_Taken = first(Banner_Term), 
-              First_grade = first(Grade_Final_Grade))
+              First_Grade = first(Grade_Final_Grade))
 }
 
 
@@ -78,19 +75,21 @@ course_list <- course_data %>%
   select(Course_Subject, Course_Number) %>% 
   distinct() %>% arrange(Course_Subject, Course_Number)
 
-with_neighbor_courses <- (function(course_data) {
-  function(course_instances, profile_course, ncourses) {
-    profile_course_first_instance <- first_instance(course_instances)
+#add_neighbor_courses <- (function(course_data) {
+add_neighbor_courses <- function(course_data, profile_course_first_instance) {
+     #<- first_instance(course_instances)
     
-    courses_with_profile <- right_join(course_data, 
-                                       profile_course_first_instance, by = "IDS") %>% 
-      filter(Registered_credit_hours > 0) %>% # Filter out lab courses, which have credit hours set to 0
+    right_join(course_data, profile_course_first_instance %>% select(IDS, First_Taken), by = "IDS") %>% 
+      filter(Registered_credit_hours > 0,
+             IDS %in% profile_course_first_instance$IDS) %>% # Filter out lab courses, which have credit hours set to 0
       mutate(when = case_when(Banner_Term < First_Taken ~ "before",
                               Banner_Term == First_Taken ~ "with",
                               Banner_Term > First_Taken ~ "after"))
-  }
-})(course_data)
-  
+}
+#})(course_data)
+
+#'
+#' @return an object of the same type as .data with columns 
 fetch_neighbor_courses <- function(courses_with_profile, profile_course, Ntotal, ncourses) {
   courses_with_profile %>% 
       filter(Grade_Course != profile_course) %>%
@@ -107,24 +106,42 @@ fetch_neighbor_courses <- function(courses_with_profile, profile_course, Ntotal,
 grade_distribution <- function(course_instances, groupingVar = NULL) {
     #counts <- table(convert_grades_letter(course_instances$Grade_Final_Grade))
   counts <- mutate(course_instances, Grade = convert_grades_letter(Grade_Final_Grade))
+  #counts <- mutate(course_instances, Grade = Grade_Final_Grade)
   
   course_title <- firstna(as.character(unique(course_instances$Grade_Course_Title)))
   if (!is.null(groupingVar)) {
     message("Grouping grade distribution by ", paste(unique(course_instances[[groupingVar]]), collapse = ", "))
   }
   
-  aesthetics <- (if ("group" %in% names(counts)) {
-    aes(x = Grade, y = ..prop.., group = group, fill = group, label = paste0(..count.., " (", round(..prop.. * 100, 2), '%',")"))
+  aes_now <- function(...) {
+    structure(list(...),  class = "uneval")
+  }
+  
+  #aesthetics <- (if ("group" %in% names(counts)) {
+  aesthetics <- (if (!is.null(groupingVar)) {
+    message("Grouping by ", as.name(groupingVar))
+    aes_(x = ~Grade, 
+        y = ~..prop.., 
+        group = as.name(groupingVar), 
+        fill = as.name(groupingVar))
   } else {
-    aes(x = Grade, y = (..count.. / sum(..count..)), label = paste0(..count.., " (", round((..count.. / sum(..count..)) * 100, 2), '%',")"))
+    aes(x = Grade, 
+        y = (..count.. / sum(..count..)), 
+        label = paste0(..count.., " (", round((..count.. / sum(..count..)) * 100, 2), '%',")"))
+  })
+  
+  text_aes <- (if (!is.null(groupingVar)) {
+    aes(vjust = -1,
+        label = paste0(..count.., " (", round(eval(..prop..) * 100, 2), '%',")"))
+  } else {
+    aes(vjust = -1, label = paste0(..count.., " (", round((..count.. / sum(..count..)) * 100, 2), '%',")"))
   })
 
-  ggplot(counts, aesthetics) + 
-    geom_bar(position = "dodge") + 
-    geom_text(aes(
-                  vjust = -1),
-              stat = 'count', 
-              position = position_dodge(0.9), 
+  ggplot(counts, aesthetics) +
+    geom_bar(position = "dodge") +
+    geom_text(text_aes,
+              stat = 'count',
+              position = position_dodge(0.9),
               size = 5) +
     labs(x = 'Grade', y = 'N (%)') +
     ggtitle(paste0(course_title, " grade distribution for ", paste(range(course_instances$Banner_Term), collapse = " - "), " (N = ", nrow(counts), ")"))
