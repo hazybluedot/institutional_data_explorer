@@ -1,4 +1,6 @@
-shinyUI(navbarPage("Institutional Records Explorer",
+library(shinythemes)
+
+shinyUI(navbarPage("Institutional Records Explorer", theme = "superhero",
   
   tabPanel("Course",
            sidebarLayout(
@@ -10,7 +12,8 @@ shinyUI(navbarPage("Institutional Records Explorer",
                            value = c(Sys.Date() - 1, Sys.Date()), 
                            dragRange = TRUE,
                            timeFormat = "%b %Y"),
-               selectInput("groupBy", 'Compare Across', c(as.character(NA), width = "12em")),
+               selectInput("groupBy", "Compare Across", c(as.character(NA)), width = "12em"),
+               verbatimTextOutput("status"),
                width = 3),
              mainPanel(
               gradeDistributionUI("GradeDist"),
@@ -19,7 +22,6 @@ shinyUI(navbarPage("Institutional Records Explorer",
                 tabPanel("Taken With", courseWidgetUI("CoursesWith", "Taken With")),
                 tabPanel("Taken After", courseWidgetUI("CoursesAfter", "Taken After"))
                 ),
-             verbatimTextOutput("status"),
       DT::dataTableOutput("DegreesAfter"),
       width = 9))), 
   tabPanel("Degree", h1("Degree"))

@@ -10,7 +10,8 @@ courseWidgetUI <- function(id, label = "Course Preview", header = NULL) {
     hr(),
     fluidRow(
       column(4, DT::dataTableOutput(ns("CourseTable"))),
-      column(8, plotOutput(ns("GradeDist")))
+      column(8, gradeDistributionUI(ns("GradeDist")))
+      #column(8, plotOutput(ns("GradeDist")))
       )
     #,
     #verbatimTextOutput(ns("status"))
@@ -32,15 +33,16 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   #  course_table()[s,]$Grade_Course
   #})
   
-  courseInstances <- eventReactive(
-    length(input$CourseTable_rows_selected) > 0, 
-    {
+  courseInstances <- eventReactive({
+    if (length(input$CourseTable_rows_selected) > 0) TRUE
+    else return()
+    #(length(input$CourseTable_rows_selected) > 0)
+    }, {
       vals$selected <- course_table()[input$CourseTable_rows_selected,]$Grade_Course
       filter(course_data(), 
-                                  Grade_Course == vals$selected, 
-                                  !is.null(Grade_Final_Grade), 
-                                  Grade_Final_Grade %in% valid_grades)
-
+                          Grade_Course == vals$selected, 
+                          !is.null(Grade_Final_Grade), 
+                          Grade_Final_Grade %in% valid_grades)
     #message("Ignoring date range ", paste(vals$dateRange, collapse =", "))
     #showModal(modalDialog(
     #  plotOutput(ns("GradeDist")),
@@ -57,7 +59,6 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   course_table <- eventReactive({
     isTruthy(course_data()) & isTruthy(profile_course())
   }, {
-    message("calculating course_table with ", nrow(course_data()), " rows of course data and ", n_distinct(profile_course()), " unique IDS in the profile course.")
     profileIDS <- distinct(profile_course(), IDS)$IDS
     Ntotal <- length(profileIDS)
     course_data() %>%
@@ -72,7 +73,6 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   
   output$CourseTable <- {
     DT::renderDataTable({
-      message("Rendering output$CourseTable for ", session$id, " when = ", .when)
       if (is.null(course_data())) return()
       datatable(course_table(),
                                    options = list(pageLength = 5, searching = FALSE, lengthChange = FALSE),
@@ -84,12 +84,10 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   
   #output$status <- renderPrint(paste0(selected(), " selected"))
   
-  output$GradeDist <- renderPlot({
-    data <- courseInstances()
-    if (!is.null(data) & nrow(data) > 0) {
-      grade_distribution(data)
-    }
-  })
+  callModule(gradeDistribution, "GradeDist", courseInstances, reactive(NA))
+  #output$GradeDist <- renderPlot({
+  #  grade_distribution(courseInstances())
+  #})
     
   return(reactive(vals$selected))
 }

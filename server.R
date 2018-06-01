@@ -10,8 +10,8 @@ shinyServer(function(input, output, session) {
     subjects <- course_list %>% 
       distinct(Course_Subject)
     updateSelectInput(session, "subject", choices = subjects)
-    grouping_vars <- student_data %>% select_if(is.factor) %>% names()
-    updateSelectInput(session, "groupBy", choices = c("None" = NA, "Selected Course" = "group", grouping_vars))
+    grouping_vars <- student_data %>% select_if(~(is.factor(.) & length(levels(.)) <= 3)) %>% names()
+    updateSelectInput(session, "groupBy", choices = c("None" = as.character(NA), "Selected Course" = "group", grouping_vars))
     date_range <- as.Date(range(course_data$Banner_Term))
     updateSliderInput(session, "dateRange", 
                       min = date_range[1], 
@@ -45,8 +45,8 @@ shinyServer(function(input, output, session) {
                                       Banner_Term <= input$dateRange[2],
                                       !is.null(Grade_Final_Grade),
                                       Grade_Final_Grade %in% valid_grades) %>%
-        mutate(group = "none") #%>%
-      #left_join(student_data %>% select(-Banner_Term, -Major, -College_code), by = "IDS")
+        mutate(group = "none") %>%
+        left_join(student_data %>% select(-Banner_Term, -Major, -College_code), by = "IDS")
       #message("vals$course_instances names: ", paste(names(vals$course_instances), collapse = ", "))
       vals$first_instance <- first_instance(vals$course_instances)
       
@@ -54,7 +54,7 @@ shinyServer(function(input, output, session) {
                                                           filter(Grade_Course != vals$profile_course,
                                                                  Banner_Term >= input$dateRange[1], 
                                                                  Banner_Term <= input$dateRange[2]),
-                                                        vals$first_instance)
+                                                        vals$first_instance) %>% select(-First_Taken)
       s <- vals$courses_with_profile %>% group_by(when) %>% summarize(n = n())
       message("Got ", filter(s, when == "before")$n, " befor, ", filter(s, when == "with")$n, " with, and ", (s %>% filter(when == "after"))$n, " after.")
       vals$Ntotal <- n_distinct(vals$course_instances$IDS)
@@ -83,7 +83,9 @@ shinyServer(function(input, output, session) {
   
   output$CourseTitle <- renderPrint(vals$course_title)
   
-  callModule(gradeDistribution, "GradeDist", reactive(vals$course_instances), input$groupBy)
+  output$status <- renderPrint(if (!is.na(input$groupBy)) paste0("Grouping by ", input$groupBy))
+  
+  callModule(gradeDistribution, "GradeDist", reactive(vals$course_instances), reactive(input$groupBy))
 
   neighbor_before <- callModule(courseWidget,
                                 "CoursesBefore",
@@ -103,22 +105,22 @@ shinyServer(function(input, output, session) {
   
   #output$status  <- renderPrint(paste0(neighbor_before(), " selected"))
 
-  # output$DegreesAfter <- DT::renderDataTable({
-  #   if (is.null(vals$course_instances)) return()
-  #   message("Rendering degree table for ", nrow(vals$course_instances), " rows.")
-  #   profile_course_first_instance <- first_instance(vals$course_instances)
-  #   degrees_first_instance_summary <- degrees %>% 
-  #     filter(IDS %in% profile_course_first_instance$IDS,
-  #            Degree_category == "Primary Major",
-  #            grepl("^B", Degree)) %>%
-  #     group_by(Degree_major) %>%
-  #     #semi_join(degrees, course.ID.and.grade, by="IDS") %>% filter(grepl("B",Degree)) %>% 
-  #     summarize(Ntotal=n_distinct(IDS)) %>%
-  #     arrange(-Ntotal) %>%
-  #     head(n = params$ndegrees)
-  # }, 
-  # options = list(searching = FALSE, 
-  #                lengthChange = FALSE), 
-  # selection = "single",
-  # server = FALSE)
+  output$DegreesAfter <- DT::renderDataTable({
+    if (is.null(vals$course_instances)) return()
+    message("Rendering degree table for ", nrow(vals$course_instances), " rows.")
+    profile_course_first_instance <- first_instance(vals$course_instances)
+    degrees_first_instance_summary <- degrees %>%
+      filter(IDS %in% profile_course_first_instance$IDS,
+             Degree_category == "Primary Major",
+             grepl("^B", Degree)) %>%
+      group_by(Degree_major) %>%
+      #semi_join(degrees, course.ID.and.grade, by="IDS") %>% filter(grepl("B",Degree)) %>%
+      summarize(Ntotal=n_distinct(IDS)) %>%
+      arrange(-Ntotal) %>%
+      head(n = params$ndegrees)
+  },
+  options = list(searching = FALSE,
+                 lengthChange = FALSE),
+  selection = "single",
+  server = FALSE)
 })

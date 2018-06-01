@@ -15,13 +15,15 @@ firstna <- function(x) {
   first(x[!is.na(x)])
 }
 
+grade_levels <- c("A", "A-",
+                  "B+", "B", "B-",
+                  "C+", "C", "C-",
+                  "D+", "D", "D-",
+                  "T",
+                  "F", "NR", "NG", "F *", "W", "WG")
+
 convert_grades_numerical <- function(x) {
-  A <- factor(x, levels=c("A", "A-",
-                          "B+", "B", "B-",
-                          "C+", "C", "C-",
-                          "D+", "D", "D-",
-                          "T",
-                          "F", "NR", "NG", "F *", "W"))
+  A <- factor(x, levels = grade_levels)
   values <- c(4, 3.7, 
               3.3, 3, 2.7,
               2.3, 2, 1.7,
@@ -53,6 +55,9 @@ valid_grades <- c("A", "A-",
                   "W", "T")
 
 first_instance <- function(course_instances) {
+  if (n_distinct(course_instances$Grade_Course) != 1) {
+    warning("first_instance assumes only one unique course, found ", n_distinct(course_instances$Grade_Course))
+  }
   course_instances %>% 
     group_by(IDS) %>% 
     arrange(Banner_Term) %>% 
@@ -65,7 +70,9 @@ load(course_fname)
 load(student_fname)
 load(degree_fname)
 
-course_data <- mutate(course_data, Banner_Term = parse_date(as.character(Banner_Term), "%Y%m"))
+course_data <- mutate(course_data, 
+                      Banner_Term = parse_date(as.character(Banner_Term), "%Y%m"),
+                      Grade_Final_Grade = parse_factor(Grade_Final_Grade, grade_levels))
 degrees <- mutate(degrees, Degree_term = parse_date(as.character(Degree_term), "%Y%m")) %>% 
   rename(Degree_Term = Degree_term)
 
@@ -104,31 +111,33 @@ fetch_neighbor_courses <- function(courses_with_profile, profile_course, Ntotal,
 }
 
 grade_distribution <- function(course_instances, groupingVar = NULL) {
-    #counts <- table(convert_grades_letter(course_instances$Grade_Final_Grade))
-  counts <- mutate(course_instances, Grade = convert_grades_letter(Grade_Final_Grade))
-  #counts <- mutate(course_instances, Grade = Grade_Final_Grade)
-  
   course_title <- firstna(as.character(unique(course_instances$Grade_Course_Title)))
-  if (!is.null(groupingVar)) {
-    message("Grouping grade distribution by ", paste(unique(course_instances[[groupingVar]]), collapse = ", "))
-  }
+  # if (!is.null(groupingVar)) {
+  #   message("Grouping grade distribution by ", groupingVar, " with values ", paste(unique(course_instances[[groupingVar]]), collapse = ", "))
+  # }
   
   aes_now <- function(...) {
     structure(list(...),  class = "uneval")
   }
   
-  #aesthetics <- (if ("group" %in% names(counts)) {
-  aesthetics <- (if (!is.null(groupingVar)) {
-    message("Grouping by ", as.name(groupingVar))
-    aes_(x = ~Grade, 
-        y = ~..prop.., 
-        group = as.name(groupingVar), 
-        fill = as.name(groupingVar))
+  isGrouping <- (isTruthy(groupingVar) & groupingVar %in% names(course_instances))
+  
+  # message("names(course_instances): ", paste(names(course_instances), collapse = ","))
+  # message("groupingVar: '", groupingVar, "' (", isTruthy(groupingVar), "), ",
+  #         "groupingVar %in% names(.): ", groupingVar %in% names(course_instances), 
+  #         ", isGrouping: ", isGrouping, " length(argument): ", length(isGrouping))
+  # 
+  p <- if (length(isGrouping) & isGrouping) {
+    message("Grouped grade distribution by ", groupingVar)
+    ggplot(course_instances, aes_(x = ~Grade, 
+                                   y = ~..prop.., 
+                                   group = as.name(groupingVar), 
+                                   fill = as.name(groupingVar)))
   } else {
-    aes(x = Grade, 
-        y = (..count.. / sum(..count..)), 
-        label = paste0(..count.., " (", round((..count.. / sum(..count..)) * 100, 2), '%',")"))
-  })
+    ggplot(course_instances, aes(x = Grade, 
+                                  y = (..count.. / sum(..count..))),
+           fill = "maroon")
+  }
   
   text_aes <- (if (!is.null(groupingVar)) {
     aes(vjust = -1,
@@ -137,7 +146,7 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
     aes(vjust = -1, label = paste0(..count.., " (", round((..count.. / sum(..count..)) * 100, 2), '%',")"))
   })
 
-  ggplot(counts, aesthetics) +
+  p +
     geom_bar(position = "dodge") +
     geom_text(text_aes,
               stat = 'count',
