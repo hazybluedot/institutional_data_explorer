@@ -139,21 +139,27 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
            fill = "maroon")
   }
   
-  text_aes <- (if (!is.null(groupingVar)) {
+  text_aes <- if (isGrouping) {
     aes(vjust = -1,
         label = paste0(..count.., " (", round(eval(..prop..) * 100, 2), '%',")"))
   } else {
     aes(vjust = -1, label = paste0(..count.., " (", round((..count.. / sum(..count..)) * 100, 2), '%',")"))
-  })
+  }
 
-  p +
-    geom_bar(position = "dodge") +
+  p  +
+    scale_fill_manual(values = c("maroon", "orange")) +
+    (if (isGrouping) {
+      geom_bar(position = "dodge") 
+    } else {
+      geom_bar(position = "dodge", fill = "maroon") 
+    }) +
     geom_text(text_aes,
               stat = 'count',
               position = position_dodge(0.9),
               size = 5) +
     labs(x = 'Grade', y = 'N (%)') +
-    ggtitle(paste0(course_title, " grade distribution for ", paste(range(course_instances$Banner_Term), collapse = " - "), " (N = ", nrow(counts), ")"))
+    scale_y_continuous(expand=c(0.1, 0)) +
+    ggtitle(paste0(course_title, " grade distribution for ", paste(range(course_instances$Banner_Term), collapse = " - "), " (N = ", nrow(course_instances), ")"))
 }
 
 source("CourseWidget.R", local = TRUE)

@@ -39,8 +39,11 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
     #(length(input$CourseTable_rows_selected) > 0)
     }, {
       vals$selected <- course_table()[input$CourseTable_rows_selected,]$Grade_Course
+      profileIDS <- distinct(profile_course(), IDS)$IDS
       filter(course_data(), 
                           Grade_Course == vals$selected, 
+                          when == .when,
+                          IDS %in% profileIDS,
                           !is.null(Grade_Final_Grade), 
                           Grade_Final_Grade %in% valid_grades)
     #message("Ignoring date range ", paste(vals$dateRange, collapse =", "))
