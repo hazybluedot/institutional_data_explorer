@@ -153,7 +153,7 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
   }
 
   p  +
-    scale_fill_manual(values = c("maroon", "orange")) +
+    scale_fill_manual(values = c("maroon", "orange", "blue")) +
     (if (isGrouping) {
       geom_bar(position = "dodge") 
     } else {
