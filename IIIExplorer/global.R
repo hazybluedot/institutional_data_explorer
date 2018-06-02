@@ -2,7 +2,13 @@ library(shiny)
 library(DT)
 library(tidyverse)
 
-setwd("~/ENGE/Studies/Investing in Instructors/III_Dashboard")
+local_dir <- "~/ENGE/Studies/Investing in Instructors/III_Dashboard/IIIExplorer"
+
+if (dir.exists(local_dir)) {
+ setwd("~/ENGE/Studies/Investing in Instructors/III_Dashboard/IIIExplorer")
+} else {
+ setwd("/root/IIIExplorer")
+}
 
 course_fname <- "../data/course_data.rda"
 student_fname <- "../data/student_data.rda"
