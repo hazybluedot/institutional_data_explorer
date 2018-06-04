@@ -22,15 +22,14 @@ RUN apt-get update && apt-get install -y \
 RUN R -e "install.packages(c('shiny', 'rmarkdown'), repos='https://cloud.r-project.org/')"
 
 # install dependencies of the III app
-RUN R -e "install.packages(c('tidyverse', 'DT'), repos='https://cloud.r-project.org/')"
-RUN R -e "install.packages('shinythemes', repos='https://cloud.r-project.org/')"
+RUN R -e "install.packages(c('tidyverse', 'DT', 'rms', 'shinythemes'), repos='https://cloud.r-project.org/')"
 
 # copy the app to the image
-RUN mkdir /root/IIIExplorer
-COPY IIIExplorer /root/IIIExplorer
-
 RUN mkdir /root/data
 COPY data /root/data
+
+RUN mkdir /root/IIIExplorer
+COPY IIIExplorer /root/IIIExplorer
 
 COPY Rprofile.site /usr/lib/R/etc/
 
