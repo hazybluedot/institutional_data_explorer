@@ -21,6 +21,19 @@ firstna <- function(x) {
   first(x[!is.na(x)])
 }
 
+numeric_to_term <- function(x) {
+      year <- x %/% 1
+      part <- x %% 1
+      month <- case_when(part == 0 ~ 1,
+                         part == 0.5 ~ 9,
+                         TRUE ~ as.numeric(NA))
+      as.Date(paste(year, month, 1, sep = "-"))
+}
+
+term_to_numeric <- function(x) {
+  
+}
+
 grade_levels <- c("A", "A-",
                   "B+", "B", "B-",
                   "C+", "C", "C-",
@@ -28,18 +41,18 @@ grade_levels <- c("A", "A-",
                   "T",
                   "F", "NR", "NG", "F *", "W", "WG")
 
-convert_grades_numerical <- function(x) {
+convert_grades_numeric <- function(x, Tvalue = 2.0) {
   A <- factor(x, levels = grade_levels)
   values <- c(4, 3.7, 
               3.3, 3, 2.7,
               2.3, 2, 1.7,
               1.3, 1, 0.7,
-              2.0,
-              0,0,0,0,0)
+              Tvalue,
+              0,0,0,0,0, 0)
   values[A]
 }
 
-convert_grades_letter <- function(x) {
+collapse_letter_grade <- function(x) {
   fct_collapse(x, A = c("A", "A-"),
                B = c("B+", "B", "B-"),
                C = c("C+", "C", "C-"),
@@ -67,7 +80,7 @@ first_instance <- function(course_instances) {
   course_instances %>% 
     group_by(IDS) %>% 
     arrange(Banner_Term) %>% 
-    summarize(First_Taken = first(Banner_Term), 
+    dplyr::summarize(First_Taken = first(Banner_Term), 
               First_Grade = first(Grade_Final_Grade))
 }
 
@@ -107,7 +120,7 @@ fetch_neighbor_courses <- function(courses_with_profile, profile_course, Ntotal,
   courses_with_profile %>% 
       filter(Grade_Course != profile_course) %>%
       group_by(when, Grade_Course) %>% 
-      summarize(Title = first(Grade_Course_Title), N = n_distinct(IDS)) %>% 
+      dplyr::summarize(Title = dplyr::first(Grade_Course_Title), N = n_distinct(IDS)) %>% 
       mutate( pct = N / Ntotal ) %>%
       arrange(when, -pct) %>% 
       ungroup() %>%
@@ -170,4 +183,5 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
 
 source("CourseWidget.R", local = TRUE)
 source("GradeDistWidget.R", local = TRUE)
+source("successAnalysis.R", local = TRUE)
 #source("ENGE/Studies/Investing in Instructors/III_Dashboard")

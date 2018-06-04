@@ -27,7 +27,8 @@ courseWidgetUI <- function(id, label = "Course Preview", header = NULL) {
 courseWidget <- function(input, output, session, course_data, .when, profile_course) {
   ns <- session$ns
   vals = reactiveValues(selected = NULL, courseInstances = NULL)
-
+  reset = reactiveValues(sel = "")
+  
   #selected <- eventReactive(input$CourseTable_rows_selected, {
   #  s <- input$CourseTable_rows_selected
   #  course_table()[s,]$Grade_Course
@@ -36,12 +37,17 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   courseInstances <- eventReactive({
     if (length(input$CourseTable_rows_selected) > 0) TRUE
     else return()
-    #(length(input$CourseTable_rows_selected) > 0)
     }, {
-      vals$selected <- course_table()[input$CourseTable_rows_selected,]$Grade_Course
+      if(length(input$CourseTable_rows_selected) > 3){
+        reset$sel <- setdiff(input$CourseTable_rows_selected, input$CourseTable_row_last_clicked)
+      }else{
+        reset$sel <- input$CourseTable_rows_selected
+      }
+      
+      vals$selected <- course_table()[reset$sel,]$Grade_Course
       profileIDS <- distinct(profile_course(), IDS)$IDS
       filter(course_data(), 
-                          Grade_Course == vals$selected, 
+                          Grade_Course == first(vals$selected), 
                           when == .when,
                           IDS %in% profileIDS,
                           !is.null(Grade_Final_Grade), 
@@ -68,7 +74,7 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
       filter(when == .when,
              IDS %in% profileIDS) %>%
       group_by(Grade_Course) %>%
-      summarize(Title = first(Grade_Course_Title),
+      dplyr::summarize(Title = first(Grade_Course_Title),
                 N = n_distinct(IDS),
                 pct = N / Ntotal) %>%
       arrange(-N) %>% filter(pct > 0.10)    
@@ -80,7 +86,7 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
       datatable(course_table(),
                                    options = list(pageLength = 5, searching = FALSE, lengthChange = FALSE),
                                    rownames = FALSE,
-                                   selection = "single") %>% formatPercentage('pct', 2)},
+                                   selection = list(mode = "multiple", selected = reset$sel)) %>% formatPercentage('pct', 2)},
                                             server = FALSE)
   }
   #output$status <- renderPrint(selectedCourse())

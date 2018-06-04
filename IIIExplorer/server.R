@@ -12,8 +12,9 @@ shinyServer(function(input, output, session) {
     updateSelectInput(session, "subject", choices = subjects)
     grouping_vars <- student_data %>% select_if(~(is.factor(.) & length(levels(.)) <= 3)) %>% names()
     updateSelectInput(session, "groupBy", choices = c("None" = as.character(NA), "Selected Course" = "group", grouping_vars))
-    date_range <- as.Date(range(course_data$Banner_Term))
-    updateSliderInput(session, "dateRange", 
+    date_range <- as.numeric(format(range(course_data$Banner_Term), "%Y"))
+    message('updating slider to range ', paste(date_range, collapse = " - "))
+    updateSliderInput(session, "termRange", 
                       min = date_range[1], 
                       max = date_range[2], 
                       value = c(date_range[1], date_range[2])) 
@@ -25,6 +26,10 @@ shinyServer(function(input, output, session) {
                         distinct(Course_Number))
   })
   
+  dateRange <- eventReactive(input$termRange, {
+    numeric_to_term(input$termRange)
+  })
+  
   observeEvent({ 
     input$number
     }, {
@@ -32,7 +37,7 @@ shinyServer(function(input, output, session) {
   }, ignoreNULL = TRUE)
   
   observeEvent({
-    if (vals$profile_course %in% unique(course_data$Grade_Course) & isTruthy(input$dateRange)) TRUE
+    if (vals$profile_course %in% unique(course_data$Grade_Course) & isTruthy(dateRange())) TRUE
     else return()
   }, {
       vals$course_title <- first(filter(course_data, Grade_Course == vals$profile_course)$Grade_Course_Title)
@@ -41,8 +46,8 @@ shinyServer(function(input, output, session) {
       
       vals$course_instances <- filter(course_data, 
                                       Grade_Course == vals$profile_course,
-                                      Banner_Term >= input$dateRange[1],
-                                      Banner_Term <= input$dateRange[2],
+                                      Banner_Term >= dateRange()[1],
+                                      Banner_Term <= dateRange()[2],
                                       !is.null(Grade_Final_Grade),
                                       Grade_Final_Grade %in% valid_grades) %>%
         mutate(group = "none") %>%
@@ -52,10 +57,11 @@ shinyServer(function(input, output, session) {
       
       vals$courses_with_profile <- add_neighbor_courses(course_data %>% 
                                                           filter(Grade_Course != vals$profile_course,
-                                                                 Banner_Term >= input$dateRange[1], 
-                                                                 Banner_Term <= input$dateRange[2]),
+                                                                 Banner_Term >= dateRange()[1], 
+                                                                 Banner_Term <= dateRange()[2]),
                                                         vals$first_instance) %>% select(-First_Taken)
-      s <- vals$courses_with_profile %>% group_by(when) %>% summarize(n = n())
+      s <- vals$courses_with_profile %>% group_by(when) %>% 
+        dplyr::summarize(n = n())
       message("Got ", filter(s, when == "before")$n, " befor, ", filter(s, when == "with")$n, " with, and ", (s %>% filter(when == "after"))$n, " after.")
       vals$Ntotal <- n_distinct(vals$course_instances$IDS)
     })
@@ -86,7 +92,8 @@ shinyServer(function(input, output, session) {
   output$status <- renderPrint(if (!is.na(input$groupBy)) paste0("Grouping by ", input$groupBy))
   
   callModule(gradeDistribution, "GradeDist", reactive(vals$course_instances), reactive(input$groupBy))
-
+  callModule(successAnalysis, "SuccessAnalysis", reactive(vals$courses_with_profile), reactive(vals$course_instances), reactive(input$groupBy), neighbor_before)
+  
   neighbor_before <- callModule(courseWidget,
                                 "CoursesBefore",
                                 reactive(vals$courses_with_profile),
@@ -115,7 +122,7 @@ shinyServer(function(input, output, session) {
              grepl("^B", Degree)) %>%
       group_by(Degree_major) %>%
       #semi_join(degrees, course.ID.and.grade, by="IDS") %>% filter(grepl("B",Degree)) %>%
-      summarize(Ntotal=n_distinct(IDS)) %>%
+      dplyr::summarize(Ntotal=n_distinct(IDS)) %>%
       arrange(-Ntotal) %>%
       head(n = params$ndegrees)
   },

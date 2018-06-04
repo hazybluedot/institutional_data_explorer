@@ -6,8 +6,8 @@ gradeDistributionUI <- function(id, label = "Grade Distribution") {
   ns <- NS(id)
   
   tagList(
-    plotOutput(ns("GradeDist")),
-    verbatimTextOutput(ns("status"))
+    plotOutput(ns("GradeDist"))#,
+    #verbatimTextOutput(ns("status"))
   )
 }
 
@@ -20,18 +20,19 @@ gradeDistribution <- function(input, output, session, course_data, groupBy = NUL
                                            left_join(course_data(), 
                                                      first_instance(course_data()),
                                                      by = "IDS") %>% filter(Banner_Term == First_Taken) %>%
-                                             mutate(Grade = convert_grades_letter(Grade_Final_Grade))
+                                             mutate(Grade = collapse_letter_grade(Grade_Final_Grade))
                                          })
 
   output$status <- renderPrint(paste0("grouping by ", groupBy()))
   
   output$GradeDist <- renderPlot({
+    shiny::validate(need(nrow(course_first_instance()) > 0, "Need a valid course table"))
     groupingVar <- if (is.reactive(groupBy)) {
       groupBy()
     } else {
       NULL
     }
-    message("GradeDist nrow(course_first_instance): ", nrow(course_first_instance()), ", names(course_first_instance): ", paste(names(course_first_instance()), collapse = ", "))
+    #message("GradeDist nrow(course_first_instance): ", nrow(course_first_instance()), ", names(course_first_instance): ", paste(names(course_first_instance()), collapse = ", "))
     grade_distribution(course_first_instance(), groupingVar)
   })
   
