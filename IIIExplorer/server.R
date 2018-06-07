@@ -92,7 +92,7 @@ shinyServer(function(input, output, session) {
   output$status <- renderPrint(if (!is.na(input$groupBy)) paste0("Grouping by ", input$groupBy))
   
   callModule(gradeDistribution, "GradeDist", reactive(vals$course_instances), reactive(input$groupBy))
-  callModule(successAnalysis, "SuccessAnalysis", reactive(vals$courses_with_profile), reactive(vals$course_instances), reactive(input$groupBy), neighbor_before)
+  #callModule(successAnalysis, "SuccessAnalysis", reactive(vals$courses_with_profile), reactive(vals$course_instances), reactive(input$groupBy), neighbor_before)
   
   neighbor_before <- callModule(courseWidget,
                                 "CoursesBefore",

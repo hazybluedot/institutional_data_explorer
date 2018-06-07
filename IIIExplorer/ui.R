@@ -60,8 +60,8 @@ shinyUI(navbarPage("Institutional Records Explorer", theme = shinytheme("cerulea
                width = 3),
              mainPanel(
               tabsetPanel(id = "profile",
-                tabPanel("Grade Distribution", gradeDistributionUI("GradeDist"), value = "grades"),
-                tabPanel("Predictors of Success", successAnalysisUI("SuccessAnalysis"), value = "success")
+                tabPanel("Grade Distribution", gradeDistributionUI("GradeDist"), value = "grades")#,
+                #tabPanel("Predictors of Success", successAnalysisUI("SuccessAnalysis"), value = "success")
               ),
               tabsetPanel(
                 tabPanel("Taken Before", courseWidgetUI("CoursesBefore", "Taken Before")),
