@@ -75,17 +75,23 @@ shinyServer(function(input, output, session) {
         mutate(group = if_else(IDS %in% .groupBy$IDS, .groupBy$names[1], .groupBy$names[2]))
     })
   
-  # observeEvent(neighbor_before(), {
-  #   course <- neighbor_before()
-  #   if (!is.na(course)) {
-  #     took_selected_before <- vals$courses_with_profile %>%
-  #       filter(Grade_Course == course, when == "before")
-  #     #vals$course_instances <- vals$course_instances %>% mutate(
-  #     #  group = if_else(IDS %in% took_selected_before$IDS, "Took before", "Did not take")
-  #     #)
-  #     vals$groups <- list(IDS = took_selected_before$IDS, names = c(paste0("Took ", course, " before"), "Did not take before"))
-  #   }
-  # })
+  observeEvent({
+    if (length(neighbor_before()) > 0) TRUE
+    else return ()
+    }, {
+    message("neighbor_before is ", neighbor_before(), " type/class: ", typeof(neighbor_before()), "/", class(neighbor_before()))
+    course <- neighbor_before()
+    #if (!is.na(course)) {
+      took_selected_before <- vals$courses_with_profile %>%
+        filter(Grade_Course == course, when == "before")
+      #vals$course_instances <- vals$course_instances %>% mutate(
+      #  group = if_else(IDS %in% took_selected_before$IDS, "Took before", "Did not take")
+      #)
+      vals$groups <- list(IDS = took_selected_before$IDS, names = c(paste0("Took ", course, " before"), "Did not take before"))
+      vals$course_instances <- vals$course_instances %>%
+        mutate(group = if_else(IDS %in% vals$groups$IDS, vals$groups$names[1], vals$groups$names[2]))
+    #}
+  })
   
   output$CourseTitle <- renderPrint(vals$course_title)
   
