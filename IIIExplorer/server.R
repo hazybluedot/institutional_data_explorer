@@ -51,7 +51,7 @@ shinyServer(function(input, output, session) {
                                       !is.null(Grade_Final_Grade),
                                       Grade_Final_Grade %in% valid_grades) %>%
         mutate(group = "none") %>%
-        left_join(student_data %>% select(-Banner_Term, -Major, -College_code), by = "IDS")
+        left_join(student_data, by = "IDS")
       #message("vals$course_instances names: ", paste(names(vals$course_instances), collapse = ", "))
       vals$first_instance <- first_instance(vals$course_instances)
       

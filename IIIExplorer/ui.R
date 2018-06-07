@@ -42,7 +42,7 @@ termSlider('termRange', sci = true)
 "
 currentYear <- as.numeric(format(Sys.Date(), "%Y"))
 
-shinyUI(navbarPage("Institutional Records Explorer", 
+shinyUI(navbarPage("Institutional Records Explorer", theme = shinytheme("cerulean"),
   tabPanel("Course",
            tags$head(tags$script(HTML(JScode))),
            sidebarLayout(

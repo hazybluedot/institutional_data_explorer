@@ -1,5 +1,6 @@
 library(shiny)
 library(Hmisc)
+library(rms)
 
 collapse_grade_success <- function(grade) {
   fct_collapse(collapse_letter_grade(grade),
@@ -146,7 +147,7 @@ successAnalysis <- function(input, output, session, course_data, profile_course,
       coord_trans(x = "log10") +
       ylab("") +
       xlab("Odds ratio (log scale)") +
-      annotate(geom = "text", y =1.1, x = 3.5, label =paste0("Pseudo R^2 = ",round(mlfit$stats[["R2"]], 2)), size = 3.5, hjust = 0) #+ 
+      annotate(geom = "text", y =1.1, x = 3.5, label =paste0("Pseudo R^2 = ",round(vals$logit_fit$stats[["R2"]], 2)), size = 3.5, hjust = 0) #+ 
       #ggtitle("Odds of leaving ME for another Major")
   })  
   
