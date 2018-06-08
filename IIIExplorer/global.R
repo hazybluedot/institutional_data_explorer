@@ -53,14 +53,14 @@ convert_grades_numeric <- function(x, Tvalue = 2.0) {
 }
 
 collapse_letter_grade <- function(x) {
-  fct_collapse(x, A = c("A", "A-"),
+  factor(fct_collapse(x, A = c("A", "A-"),
                B = c("B+", "B", "B-"),
                C = c("C+", "C", "C-"),
                D = c("D+", "D", "D-"), 
                F = c("F", "NR", "NG", "F *"),
                T = "T",
                W = "W", 
-               WG = "WG")
+               WG = "WG"), levels = c("A", "B", "C", "D", "F", "T", "W","WG"))
   #, exclude = c("AUD", "EQ", "I", "NS", "P", "PC", "RP", "S", "X"))
 }
 
