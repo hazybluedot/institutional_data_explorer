@@ -86,7 +86,7 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
       datatable(course_table(),
                                    options = list(pageLength = 5, searching = FALSE, lengthChange = FALSE),
                                    rownames = FALSE,
-                                   selection = list(mode = "multiple", selected = reset$sel)) %>% formatPercentage('pct', 2)},
+                                   selection = list(mode = "single", selected = reset$sel)) %>% formatPercentage('pct', 2)},
                                             server = FALSE)
   }
   #output$status <- renderPrint(selectedCourse())
