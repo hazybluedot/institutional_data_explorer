@@ -42,8 +42,8 @@ termSlider('termRange', sci = true)
 "
 currentYear <- as.numeric(format(Sys.Date(), "%Y"))
 
-shinyUI(navbarPage("Institutional Records Explorer", theme = shinytheme("united"),
-  tabPanel("Course",
+shinyUI(fluidPage("Institutional Records Explorer", theme = shinytheme("united"),
+  #tabPanel("Course",
            tags$head(tags$script(HTML(JScode))),
            sidebarLayout(
              sidebarPanel(
@@ -59,6 +59,7 @@ shinyUI(navbarPage("Institutional Records Explorer", theme = shinytheme("united"
                verbatimTextOutput("status"),
                width = 3),
              mainPanel(
+              h1(textOutput("CourseTitle")),
               tabsetPanel(id = "profile",
                 tabPanel("Grade Distribution", gradeDistributionUI("GradeDist"), value = "grades")#,
                 #tabPanel("Predictors of Success", successAnalysisUI("SuccessAnalysis"), value = "success")
@@ -69,7 +70,6 @@ shinyUI(navbarPage("Institutional Records Explorer", theme = shinytheme("united"
                 tabPanel("Taken After", courseWidgetUI("CoursesAfter", "Taken After"))
                 ),
       DT::dataTableOutput("DegreesAfter"),
-      width = 9))), 
-  tabPanel("Degree", h1("Degree"))
-  )
+      width = 9)))
+  #)
 )

@@ -35,7 +35,7 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   #})
   
   courseInstances <- eventReactive({
-    if (length(input$CourseTable_rows_selected) > 0) TRUE
+    if (length(input$CourseTable_rows_selected) > 0 | isTruthy(course_table())) TRUE
     else return()
     }, {
       if(length(input$CourseTable_rows_selected) > 3){
@@ -70,6 +70,7 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   }, {
     profileIDS <- distinct(profile_course(), IDS)$IDS
     Ntotal <- length(profileIDS)
+    
     course_data() %>%
       filter(when == .when,
              IDS %in% profileIDS) %>%

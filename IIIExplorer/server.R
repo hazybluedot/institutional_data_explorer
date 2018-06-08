@@ -40,7 +40,7 @@ shinyServer(function(input, output, session) {
     if (vals$profile_course %in% unique(course_data$Grade_Course) & isTruthy(dateRange())) TRUE
     else return()
   }, {
-    vals$course_title <- first(filter(course_data, Grade_Course == vals$profile_course)$Grade_Course_Title)
+    vals$course_title <- first(as.character(filter(course_data, Grade_Course == vals$profile_course)$Grade_Course_Title))
     message("User selected ", vals$profile_course, ", ", vals$course_title)
     
     
@@ -94,7 +94,7 @@ shinyServer(function(input, output, session) {
     #}
   })
   
-  output$CourseTitle <- renderPrint(vals$course_title)
+  output$CourseTitle <- renderText(vals$course_title)
   
   #output$status <- renderPrint(if (!is.na(input$groupBy)) paste0("Grouping by ", input$groupBy))
   
