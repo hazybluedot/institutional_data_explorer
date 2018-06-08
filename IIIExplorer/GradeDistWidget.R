@@ -22,7 +22,7 @@ gradeDistribution <- function(input, output, session, course_data, groupBy = NUL
                                                      by = "IDS") %>% filter(Banner_Term == First_Taken) %>%
                                              mutate(Grade = collapse_letter_grade(Grade_Final_Grade))
                                          })
-
+  
   output$status <- renderPrint(paste0("grouping by ", groupBy()))
   
   output$GradeDist <- renderPlot({
@@ -32,7 +32,7 @@ gradeDistribution <- function(input, output, session, course_data, groupBy = NUL
     } else {
       NULL
     }
-    #message("GradeDist nrow(course_first_instance): ", nrow(course_first_instance()), ", names(course_first_instance): ", paste(names(course_first_instance()), collapse = ", "))
+
     grade_distribution(course_first_instance(), groupingVar)
   })
   

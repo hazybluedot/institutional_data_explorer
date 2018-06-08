@@ -141,13 +141,7 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
   
   isGrouping <- (isTruthy(groupingVar) & groupingVar %in% names(course_instances))
   
-  # message("names(course_instances): ", paste(names(course_instances), collapse = ","))
-  # message("groupingVar: '", groupingVar, "' (", isTruthy(groupingVar), "), ",
-  #         "groupingVar %in% names(.): ", groupingVar %in% names(course_instances), 
-  #         ", isGrouping: ", isGrouping, " length(argument): ", length(isGrouping))
-  # 
   p <- if (length(isGrouping) & isGrouping) {
-    message("Grouped grade distribution by ", groupingVar)
     ggplot(course_instances, aes_(x = ~Grade, 
                                    y = ~..prop.., 
                                    group = as.name(groupingVar), 

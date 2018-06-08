@@ -24,7 +24,7 @@ courseWidgetUI <- function(id, label = "Course Preview", header = NULL) {
 }
 
 # Module Server Function
-courseWidget <- function(input, output, session, course_data, .when, profile_course) {
+courseWidget <- function(input, output, session, course_data, .when, profile_course, groupingVar) {
   ns <- session$ns
   vals = reactiveValues(selected = NULL, courseInstances = NULL)
   reset = reactiveValues(sel = "")
@@ -93,7 +93,7 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   
   #output$status <- renderPrint(paste0(selected(), " selected"))
   
-  callModule(gradeDistribution, "GradeDist", courseInstances, reactive(NA))
+  callModule(gradeDistribution, "GradeDist", courseInstances, groupingVar)
   #output$GradeDist <- renderPlot({
   #  grade_distribution(courseInstances())
   #})
