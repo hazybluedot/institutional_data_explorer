@@ -26,7 +26,7 @@ courseWidgetUI <- function(id, label = "Course Preview", header = NULL) {
 # Module Server Function
 courseWidget <- function(input, output, session, course_data, .when, profile_course, groupingVar) {
   ns <- session$ns
-  vals = reactiveValues(selected = NULL, courseInstances = NULL)
+  vals = reactiveValues(selected = NULL, courseInstances = NULL, profileIDS = c())
   reset = reactiveValues(sel = "")
   
   #selected <- eventReactive(input$CourseTable_rows_selected, {
@@ -45,11 +45,10 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
       }
       
       vals$selected <- course_table()[reset$sel,]$Grade_Course
-      profileIDS <- distinct(profile_course(), IDS)$IDS
       filter(course_data(), 
-                          Grade_Course == first(vals$selected), 
+                          Grade_Course == dplyr::first(vals$selected), 
                           when == .when,
-                          IDS %in% profileIDS,
+                          IDS %in% vals$profileIDS,
                           !is.null(Grade_Final_Grade), 
                           Grade_Final_Grade %in% valid_grades)
     #message("Ignoring date range ", paste(vals$dateRange, collapse =", "))
@@ -66,16 +65,17 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   })
   
   course_table <- eventReactive({
-    isTruthy(course_data()) & isTruthy(profile_course())
+    if (isTruthy(course_data()) & isTruthy(profile_course())) TRUE
+    else return()
   }, {
-    profileIDS <- distinct(profile_course(), IDS)$IDS
-    Ntotal <- length(profileIDS)
+    vals$profileIDS <- distinct(profile_course(), IDS)$IDS
+    Ntotal <- length(vals$profileIDS)
     
     course_data() %>%
       filter(when == .when,
-             IDS %in% profileIDS) %>%
+             IDS %in% vals$profileIDS) %>%
       group_by(Grade_Course) %>%
-      dplyr::summarize(Title = first(Grade_Course_Title),
+      dplyr::summarize(Title = dplyr::first(Grade_Course_Title),
                 N = n_distinct(IDS),
                 pct = N / Ntotal) %>%
       arrange(-N) %>% filter(pct > 0.10)    

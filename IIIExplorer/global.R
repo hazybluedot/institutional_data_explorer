@@ -89,9 +89,18 @@ load(course_fname)
 load(student_fname)
 load(degree_fname)
 
+student_data <- rename(student_data,
+                       Tuition = Tuition_IO_Desc,
+                       URM = UnderRepMin,
+                       `First Time Freshman` = First_time_freshman,
+                       `First Generation` = First_generation_yn,
+                       `First Time Transfer` = First_time_transfer) %>%
+  filter(Gender %in% c("M", "F"))
+
 course_data <- mutate(course_data, 
                       Banner_Term = parse_date(as.character(Banner_Term), "%Y%m"),
                       Grade_Final_Grade = parse_factor(Grade_Final_Grade, grade_levels))
+
 degrees <- mutate(degrees, Degree_term = parse_date(as.character(Degree_term), "%Y%m")) %>% 
   rename(Degree_Term = Degree_term)
 
@@ -160,11 +169,12 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
   }
 
   p  +
-    scale_fill_manual(values = c("maroon", "orange", "blue")) +
+    scale_fill_brewer(type = "div", palette = 7, direction = 1) +
+    #scale_fill_manual(values = c("maroon", "orange", "blue")) +
     (if (isGrouping) {
       geom_bar(position = "dodge") 
     } else {
-      geom_bar(position = "dodge", fill = "maroon") 
+      geom_bar(position = "dodge", fill = "#fc8d59") 
     }) +
     geom_text(text_aes,
               stat = 'count',
@@ -172,7 +182,7 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
               size = 5) +
     labs(x = 'Grade', y = 'N (%)') +
     scale_y_continuous(expand=c(0.1, 0)) +
-    ggtitle(paste0(course_title, " grade distribution for ", paste(range(course_instances$Banner_Term), collapse = " - "), " (N = ", nrow(course_instances), ")"))
+    ggtitle(paste0(course_title, " grade distribution, ", paste(range(course_instances$Banner_Term), collapse = " thru "), " (N = ", nrow(course_instances), ")"))
 }
 
 source("CourseWidget.R", local = TRUE)

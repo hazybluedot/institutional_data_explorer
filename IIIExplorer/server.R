@@ -67,21 +67,21 @@ shinyServer(function(input, output, session) {
     vals$Ntotal <- n_distinct(vals$course_instances$IDS)
   })
   
-  observeEvent({
-    if (isTruthy(vals$groups) & !is.null(vals$course_instances)) TRUE
-    else return()
-  },{
-    .groupBy <- vals$groups
-    vals$course_instances <- vals$course_instances %>%
-      mutate(group = if_else(IDS %in% .groupBy$IDS, .groupBy$names[1], .groupBy$names[2]))
-  })
+  # observeEvent({
+  #   vals$groups
+  #   #if (isTruthy(vals$groups) & !is.null(vals$course_instances)) TRUE
+  #   #else return()
+  # },{
+  #   req(vals$cou)
+  #   .groupBy <- vals$groups
+  #   vals$course_instances <- vals$course_instances %>%
+  #     mutate(group = if_else(IDS %in% .groupBy$IDS, .groupBy$names[1], .groupBy$names[2]))
+  # })
   
-  observeEvent({
-    if (length(neighbor_before()) > 0) TRUE
-    else return ()
-  }, {
-    #message("neighbor_before is ", neighbor_before(), " type/class: ", typeof(neighbor_before()), "/", class(neighbor_before()))
+  observeEvent(neighbor_before(), {
     course <- neighbor_before()
+    if (length(course) > 0) { 
+    #message("neighbor_before is ", neighbor_before(), " type/class: ", typeof(neighbor_before()), "/", class(neighbor_before()))
     #if (!is.na(course)) {
     took_selected_before <- vals$courses_with_profile %>%
       filter(Grade_Course == course, when == "before")
@@ -92,6 +92,10 @@ shinyServer(function(input, output, session) {
     vals$course_instances <- vals$course_instances %>%
       mutate(group = if_else(IDS %in% vals$groups$IDS, vals$groups$names[1], vals$groups$names[2]))
     #}
+    } else {
+      vals$course_instances <- vals$course_instances %>%
+        mutate(group = "none")
+    }
   })
   
   output$CourseTitle <- renderText(vals$course_title)
@@ -115,10 +119,10 @@ shinyServer(function(input, output, session) {
                               reactive(input$groupBy))
   neighbor_after <- callModule(courseWidget,
                                "CoursesAfter",
-                               reactive(input$courses_with_profile),
+                               reactive(vals$courses_with_profile),
                                "after",
                                reactive(vals$first_instance),
-                               reactive(vals$groupBy))
+                               reactive(input$groupBy))
   
   #output$status  <- renderPrint(paste0(neighbor_before(), " selected"))
   
