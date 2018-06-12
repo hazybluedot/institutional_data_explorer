@@ -144,6 +144,31 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
   #   message("Grouping grade distribution by ", groupingVar, " with values ", paste(unique(course_instances[[groupingVar]]), collapse = ", "))
   # }
   
+  # this is a somewhat ugly geom_blank hack to force enough extra space at the top of the plot to hold the 
+  # bar labels. 
+  top_bar <- function(groupingVar) {
+    function(.data) {
+     message("top bar is being called!")
+      groupVar <- c()
+      mult <- 1.15
+      
+      if (groupingVar %in% names(.data)) {
+        groupVar <- groupingVar
+        mult <- 1.2
+      } 
+      
+      message("tob bar is grouping by ", groupVar)
+
+      df <-  .data %>% 
+        group_by_at(c("Grade", groupVar)) %>% 
+        dplyr::summarize(n = n()) %>% 
+        group_by_at(c(groupVar)) %>%
+        mutate(pct = mult * n / sum(n))
+      message("tob_bar data frame has names ", paste(names(df), collapse = ", "))
+      df
+    }
+  }
+  
   aes_now <- function(...) {
     structure(list(...),  class = "uneval")
   }
@@ -153,8 +178,8 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
   p <- if (length(isGrouping) & isGrouping) {
     ggplot(course_instances, aes_(x = ~Grade, 
                                    y = ~..prop.., 
-                                   group = as.name(groupingVar), 
-                                   fill = as.name(groupingVar)))
+                                  group = as.name(groupingVar), 
+                                  fill = as.name(groupingVar)))
   } else {
     ggplot(course_instances, aes(x = Grade, 
                                   y = (..count.. / sum(..count..))),
@@ -162,10 +187,11 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
   }
   
   text_aes <- if (isGrouping) {
-    aes(vjust = -1,
-        label = paste0(..count.., " (", round(eval(..prop..) * 100, 2), '%',")"))
+    aes(vjust = 0,
+        label = paste0(..count.., "\n(", round(eval(..prop..) * 100, 2), '',")"), y = ..prop.. + 0.025)
   } else {
-    aes(vjust = -1, label = paste0(..count.., " (", round((..count.. / sum(..count..)) * 100, 2), '%',")"))
+    aes(vjust = 0, 
+        label = paste0(..count.., "\n(", round((..count.. / sum(..count..)) * 100, 2), '%',")"), y = (..count.. / sum(..count..)) + 0.0125)
   }
 
   p  +
@@ -174,15 +200,18 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
     (if (isGrouping) {
       geom_bar(position = "dodge") 
     } else {
-      geom_bar(position = "dodge", fill = "#fc8d59") 
+      geom_bar(position = "dodge", fill = "#91bfdb") 
     }) +
     geom_text(text_aes,
               stat = 'count',
-              position = position_dodge(0.9),
+              position = position_dodge(width = 0.9),
               size = 5) +
     labs(x = 'Grade', y = 'N (%)') +
-    scale_y_continuous(expand=c(0.1, 0)) +
-    ggtitle(paste0(course_title, " grade distribution, ", paste(range(course_instances$Banner_Term), collapse = " thru "), " (N = ", nrow(course_instances), ")"))
+    scale_y_continuous(expand=c(0.05, 0.0)) +
+    theme(text = element_text(size=20)) +
+    geom_blank(data = top_bar(groupingVar), aes(x=Grade, y = pct)) +
+    ggtitle(paste0(course_title, " grade distribution, ", 
+                   paste(range(course_instances$Banner_Term), collapse = " thru "), " (N = ", nrow(course_instances), ")"))
 }
 
 source("CourseWidget.R", local = TRUE)
