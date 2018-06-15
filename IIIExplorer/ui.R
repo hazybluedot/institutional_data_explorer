@@ -44,9 +44,26 @@ currentYear <- as.numeric(format(Sys.Date(), "%Y"))
 
 shinyUI(fluidPage("Institutional Records Explorer", theme = shinytheme("united"),
   #tabPanel("Course",
-           tags$head(tags$script(HTML(JScode))),
+           tags$head(tags$script(HTML(JScode)),
+                     tags$style(type="text/css", "
+             #loadmessage {
+               position: fixed;
+               top: 0px;
+               left: 0px;
+               width: 100%;
+               padding: 5px 0px 5px 0px;
+               text-align: center;
+               font-weight: bold;
+               font-size: 100%;
+               color: #000000;
+               background-color: #91bfdb;
+               z-index: 105;
+             }
+          ")),
            sidebarLayout(
              sidebarPanel(
+               conditionalPanel(condition="$('html').hasClass('shiny-busy')",
+                                tags$div("Loading Data...",id="loadmessage")),
                selectInput("subject", "Subject", c(as.character(NA)), width = "8em"),
                selectInput("number", "Number", c(as.character(NA)), width = "8em"),
                sliderInput("termRange", "Date Range", min = currentYear - 1, 

@@ -21,7 +21,6 @@ shinyServer(function(input, output, session) {
 
     ## Set min and max date based on data
     date_range <- as.numeric(format(range(course_data()$Banner_Term), "%Y"))
-    message('updating slider to range ', paste(date_range, collapse = " - "))
     updateSliderInput(session, "termRange", 
                       min = date_range[1], 
                       max = date_range[2], 
