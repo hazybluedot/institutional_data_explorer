@@ -1,18 +1,26 @@
+course_data <- reactiveFileReader(10000, NULL, course_fname, read_course_file)
+student_data <- reactiveFileReader(10000, NULL, student_fname, read_student_file)
+degree_data <- reactiveFileReader(10000, NULL, degree_fname, read_degree_file)
+
 shinyServer(function(input, output, session) {
   vals <- reactiveValues(profile_course = NULL, 
                          groups = list(IDS = c(), names = c("", "")),
                          course_instances = NULL,
                          courses_with_profile = NULL,
-                         Ntotal = NA,
                          valid = FALSE)
   
-  observe({
-    subjects <- course_list %>% 
+  observeEvent(course_data(), {
+    vals$course_list <-  course_data() %>%
+      filter(Registered_credit_hours > 0) %>%
+      separate(Grade_Course, c("Course_Subject", "Course_Number")) %>% 
+      select(Course_Subject, Course_Number) %>% 
+      distinct() %>% arrange(Course_Subject, Course_Number) 
+    subjects <- vals$course_list %>% 
       distinct(Course_Subject)
     updateSelectInput(session, "subject", choices = subjects)
-    grouping_vars <- student_data %>% select_if(~(is.factor(.) & length(levels(.)) <= 3)) %>% names()
-    updateSelectInput(session, "groupBy", choices = c("None" = as.character(NA), "Selected Course" = "group", grouping_vars))
-    date_range <- as.numeric(format(range(course_data$Banner_Term), "%Y"))
+
+    ## Set min and max date based on data
+    date_range <- as.numeric(format(range(course_data()$Banner_Term), "%Y"))
     message('updating slider to range ', paste(date_range, collapse = " - "))
     updateSliderInput(session, "termRange", 
                       min = date_range[1], 
@@ -20,8 +28,13 @@ shinyServer(function(input, output, session) {
                       value = c(date_range[1], date_range[2])) 
   })
   
+  observeEvent(student_data(), {
+    grouping_vars <- student_data() %>% select_if(~(is.factor(.) & length(levels(.)) <= 3)) %>% names()
+    updateSelectInput(session, "groupBy", choices = c("None" = as.character(NA), "Selected Course" = "group", grouping_vars))
+  })
+
   observeEvent(input$subject, {
-    updateSelectInput(session, "number", choices = course_list %>% 
+    updateSelectInput(session, "number", choices = vals$course_list %>% 
                         filter(Course_Subject == input$subject) %>% 
                         distinct(Course_Number))
   })
@@ -37,34 +50,32 @@ shinyServer(function(input, output, session) {
   }, ignoreNULL = TRUE)
   
   observeEvent({
-    if (vals$profile_course %in% unique(course_data$Grade_Course) & isTruthy(dateRange())) TRUE
+    if (vals$profile_course %in% unique(course_data()$Grade_Course) & isTruthy(dateRange())) TRUE
     else return()
   }, {
-    vals$course_title <- first(as.character(filter(course_data, Grade_Course == vals$profile_course)$Grade_Course_Title))
+    vals$course_title <- first(as.character(filter(course_data(), Grade_Course == vals$profile_course)$Grade_Course_Title))
     message("User selected ", vals$profile_course, ", ", vals$course_title)
     
     
-    vals$course_instances <- filter(course_data, 
+    vals$course_instances <- filter(course_data(), 
                                     Grade_Course == vals$profile_course,
                                     Banner_Term >= dateRange()[1],
                                     Banner_Term <= dateRange()[2],
                                     !is.null(Grade_Final_Grade),
                                     Grade_Final_Grade %in% valid_grades) %>%
       mutate(group = "none") %>%
-      left_join(student_data, by = "IDS")
+      left_join(student_data(), by = "IDS")
     
     vals$first_instance <- first_instance(vals$course_instances)
     
-    vals$courses_with_profile <- add_neighbor_courses(course_data %>% 
+    vals$courses_with_profile <- add_neighbor_courses(course_data() %>% 
                                                         filter(Grade_Course != vals$profile_course,
                                                                Banner_Term >= dateRange()[1], 
                                                                Banner_Term <= dateRange()[2]),
                                                       vals$first_instance) %>% select(-First_Taken) %>%
-      left_join(student_data, by = "IDS")
+      left_join(student_data(), by = "IDS")
     s <- vals$courses_with_profile %>% group_by(when) %>% 
       dplyr::summarize(n = n())
-    
-    vals$Ntotal <- n_distinct(vals$course_instances$IDS)
   })
   
   # observeEvent({
@@ -128,7 +139,7 @@ shinyServer(function(input, output, session) {
   
   output$DegreesAfter <- DT::renderDataTable({
     if (is.null(vals$course_instances)) return()
-    message("Rendering degree table for ", nrow(vals$course_instances), " rows.")
+    #message("Rendering degree table for ", nrow(vals$course_instances), " rows.")
     profile_course_first_instance <- first_instance(vals$course_instances)
     degrees_first_instance_summary <- degrees %>%
       filter(IDS %in% profile_course_first_instance$IDS,

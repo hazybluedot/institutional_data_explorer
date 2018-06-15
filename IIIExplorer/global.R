@@ -19,30 +19,27 @@ params <- list(ncourses = 5,
 
 source("utils.R", local = TRUE)
 
-load(course_fname)
-load(student_fname)
-load(degree_fname)
+read_student_file <- function(fname) {
+  load(fname)
+  student_data %>% rename(Tuition = Tuition_IO_Desc,
+                          URM = UnderRepMin,
+                         `First Time Freshman` = First_time_freshman,
+                         `First Generation` = First_generation_yn,
+                         `First Time Transfer` = First_time_transfer) %>%
+    filter(Gender %in% c("M", "F"))
+}
 
-student_data <- rename(student_data,
-                       Tuition = Tuition_IO_Desc,
-                       URM = UnderRepMin,
-                       `First Time Freshman` = First_time_freshman,
-                       `First Generation` = First_generation_yn,
-                       `First Time Transfer` = First_time_transfer) %>%
-  filter(Gender %in% c("M", "F"))
+read_course_file <- function(fname) {
+  load(fname)
+  course_data %>% mutate(Banner_Term = parse_date(as.character(Banner_Term), "%Y%m"),
+                         Grade_Final_Grade = parse_factor(Grade_Final_Grade, grade_levels))
+}
 
-course_data <- mutate(course_data, 
-                      Banner_Term = parse_date(as.character(Banner_Term), "%Y%m"),
-                      Grade_Final_Grade = parse_factor(Grade_Final_Grade, grade_levels))
-
-degrees <- mutate(degrees, Degree_term = parse_date(as.character(Degree_term), "%Y%m")) %>% 
-  rename(Degree_Term = Degree_term)
-
-course_list <- course_data %>% 
-  filter(Registered_course_coll_code == 5, Registered_credit_hours > 0) %>%
-  separate(Grade_Course, c("Course_Subject", "Course_Number")) %>% 
-  select(Course_Subject, Course_Number) %>% 
-  distinct() %>% arrange(Course_Subject, Course_Number)
+read_degree_file <- function(fname) {
+  load(fname)
+  mutate(degrees, Degree_term = parse_date(as.character(Degree_term), "%Y%m")) %>% 
+    rename(Degree_Term = Degree_term)
+}
 
 #add_neighbor_courses <- (function(course_data) {
 add_neighbor_courses <- function(course_data, profile_course_first_instance) {
@@ -82,7 +79,6 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
   # bar labels. 
   top_bar <- function(groupingVar) {
     function(.data) {
-     message("top bar is being called!")
       groupVar <- c()
       mult <- 1.15
       
@@ -91,14 +87,11 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
         mult <- 1.2
       } 
       
-      message("tob bar is grouping by ", groupVar)
-
       df <-  .data %>% 
         group_by_at(c("Grade", groupVar)) %>% 
         dplyr::summarize(n = n()) %>% 
         group_by_at(c(groupVar)) %>%
         mutate(pct = mult * n / sum(n))
-      message("tob_bar data frame has names ", paste(names(df), collapse = ", "))
       df
     }
   }
