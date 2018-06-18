@@ -2,6 +2,8 @@ library(shiny)
 library(DT)
 library(tidyverse)
 
+enableBookmarking(store = "server")
+
 local_dir <- "~/ENGE/Studies/Investing in Instructors/III_Dashboard/IIIExplorer"
 
 if (dir.exists(local_dir)) {

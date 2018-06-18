@@ -128,7 +128,10 @@ shinyServer(function(input, output, session) {
   })
   
   observe({ vals$grouping_course <- input$compareCourse })
-  observe({ vals$grouping_course <- neighbor_before() })
+  observe({ 
+    vals$grouping_course <- neighbor_before() 
+    #updateTextInput(session, "compareCourse", value = vals$grouping_course)
+  })
   
   observeEvent(input$resetInputs, {
     updateSelect2Input(session, "majorFilter", "is this uses?", choices = c())
