@@ -21,7 +21,7 @@ source("utils.R", local = TRUE)
 
 read_student_file <- function(fname) {
   load(fname)
-  student_data %>% rename(Tuition = Tuition_IO_Desc,
+  student_data %>% dplyr::rename(Tuition = Tuition_IO_Desc,
                           URM = UnderRepMin,
                          `First Time Freshman` = First_time_freshman,
                          `First Generation` = First_generation_yn,
@@ -38,7 +38,7 @@ read_course_file <- function(fname) {
 read_degree_file <- function(fname) {
   load(fname)
   mutate(degrees, Degree_term = parse_date(as.character(Degree_term), "%Y%m")) %>% 
-    rename(Degree_Term = Degree_term)
+    dplyr::rename(Degree_Term = Degree_term)
 }
 
 #add_neighbor_courses <- (function(course_data) {

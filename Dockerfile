@@ -22,7 +22,10 @@ RUN apt-get update && apt-get install -y \
 RUN R -e "install.packages(c('shiny', 'rmarkdown'), repos='https://cloud.r-project.org/')"
 
 # install dependencies of the III app
-RUN R -e "install.packages(c('tidyverse', 'DT', 'rms', 'shinythemes'), repos='https://cloud.r-project.org/')"
+RUN R -e "install.packages(c('tidyverse', 'DT', 'rms', 'shinythemes', 'devtools'), repos='https://cloud.r-project.org/')"
+
+# install more dependencies of the III app
+RUN -R -e "devtools::install_github('AnalytixWare/ShinySky')"
 
 # copy the app to the image
 RUN mkdir /root/data

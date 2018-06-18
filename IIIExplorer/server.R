@@ -5,61 +5,97 @@ degree_data <- reactiveFileReader(10000, NULL, degree_fname, read_degree_file)
 shinyServer(function(input, output, session) {
   vals <- reactiveValues(profile_course = NULL, 
                          groups = list(IDS = c(), names = c("", "")),
+                         dateRange = c(),
+                         collegeFilter = NULL,
+                         majorFilter = NULL,
                          course_instances = NULL,
                          courses_with_profile = NULL,
                          valid = FALSE)
-  
-  observeEvent(course_data(), {
-    vals$course_list <-  course_data() %>%
-      filter(Registered_credit_hours > 0) %>%
-      separate(Grade_Course, c("Course_Subject", "Course_Number")) %>% 
-      select(Course_Subject, Course_Number) %>% 
-      distinct() %>% arrange(Course_Subject, Course_Number) 
-    subjects <- vals$course_list %>% 
-      distinct(Course_Subject)
-    updateSelectInput(session, "subject", choices = subjects)
 
-    ## Set min and max date based on data
+  resetDateSlider <- function(session) {
     date_range <- as.numeric(format(range(course_data()$Banner_Term), "%Y"))
     updateSliderInput(session, "termRange", 
                       min = date_range[1], 
                       max = date_range[2], 
-                      value = c(date_range[1], date_range[2])) 
+                      value = c(date_range[1], date_range[2]))
+    return(date_range)
+  }
+  
+  observeEvent(course_data(), {
+    ## Set min and max date based on data
+    resetDateSlider(session)
+  })
+  
+  observeEvent(input$termRange, {
+    vals$dateRange <- numeric_to_term(input$termRange)
+  })
+
+  observeEvent(input$collegeFilter, {
+    vals$collegeFilter <- input$collegeFilter
+  })
+  
+  observeEvent(input$majorFilter, {
+    vals$majorFilter <- input$majorFilter
+  })
+
+  filtered_course_data <- eventReactive(c(
+    course_data(),
+    vals$collegeFilter,
+    vals$majorFilter,
+    vals$dateRange
+    ), {
+      filtered_data <- course_data() %>% filter(Banner_Term >= vals$dateRange[1],
+                                                Banner_Term <= vals$dateRange[2])
+      
+      if (isTruthy(vals$collegeFilter)) {
+        .IDS <- (course_data() %>% filter(College_desc %in% vals$collegeFilter) %>% distinct(IDS))$IDS
+        filtered_data <- filtered_data %>% filter(IDS %in% .IDS)
+      }
+      
+      if (isTruthy(vals$majorFilter)) {
+        .IDS <- (course_data() %>% filter(Major %in% vals$majorFilter) %>% distinct(IDS))$IDS
+        filtered_data <- filtered_data %>% filter(IDS %in% .IDS)
+      }
+      message("Filtered data contains ", n_distinct(filtered_data$IDS), " distinct students")
+      return(filtered_data)
+  })
+  
+  observeEvent(filtered_course_data(), {
+    vals$course_list <-  filtered_course_data() %>%
+      filter(Registered_credit_hours > 0) %>%
+      separate(Grade_Course, c("Course_Subject", "Course_Number"), remove = FALSE) %>% 
+      select(Grade_Course, Course_Subject, Course_Number, Grade_Course_Title) %>% 
+      na.omit() %>% distinct() %>% mutate(Course_ID = stringr::str_replace(Grade_Course, "_", " ")) %>% arrange(Course_Subject, Course_Number) 
+    #subjects <- vals$course_list %>% 
+    #  distinct(Course_Subject)
+    #updateSelectInput(session, "subject", choices = subjects)
+    #tokens <- 
+    updateTextInput.typeahead(session, "profile_course", 
+                              vals$course_list, 
+                              valueKey = "Grade_Course",
+                              tokens = paste(vals$course_list$Course_Subject, vals$course_list$Course_Number, sep = ""),
+                              placeholder = "e.g. ESM 2204",
+                              template = "<p class = 'repo-language'>{{Course_Subject}} {{Course_Number}}<p> 
+                              <p class = 'repo-description'>{{Grade_Course_Title}}</p>"
+                              )
   })
   
   observeEvent(student_data(), {
     grouping_vars <- student_data() %>% select_if(~(is.factor(.) & length(levels(.)) <= 3)) %>% names()
     updateSelectInput(session, "groupBy", choices = c("None" = as.character(NA), "Selected Course" = "group", grouping_vars))
+    #updateCheckboxGroupInput(session, "demographicFilter", choices = c("All", grouping_vars))
   })
 
-  observeEvent(input$subject, {
-    updateSelectInput(session, "number", choices = vals$course_list %>% 
-                        filter(Course_Subject == input$subject) %>% 
-                        distinct(Course_Number))
-  })
-  
-  dateRange <- eventReactive(input$termRange, {
-    numeric_to_term(input$termRange)
-  })
-  
-  observeEvent({ 
-    input$number
-  }, {
-    vals$profile_course <- paste(input$subject, input$number, sep = "_")
-  }, ignoreNULL = TRUE)
-  
   observeEvent({
-    if (vals$profile_course %in% unique(course_data()$Grade_Course) & isTruthy(dateRange())) TRUE
+    if (input$profile_course %in% unique(filtered_course_data()$Grade_Course) & isTruthy(vals$dateRange)) TRUE
     else return()
   }, {
-    vals$course_title <- first(as.character(filter(course_data(), Grade_Course == vals$profile_course)$Grade_Course_Title))
-    message("User selected ", vals$profile_course, ", ", vals$course_title)
+    vals$course_title <- first(as.character(filter(filtered_course_data(), Grade_Course == input$profile_course)$Grade_Course_Title))
+    message("User selected ", input$profile_course, ", ", vals$course_title)
     
     
-    vals$course_instances <- filter(course_data(), 
-                                    Grade_Course == vals$profile_course,
-                                    Banner_Term >= dateRange()[1],
-                                    Banner_Term <= dateRange()[2],
+    vals$course_instances <- filter(filtered_course_data(), 
+                                    Grade_Course == input$profile_course,
                                     !is.null(Grade_Final_Grade),
                                     Grade_Final_Grade %in% valid_grades) %>%
       mutate(group = "none") %>%
@@ -67,26 +103,13 @@ shinyServer(function(input, output, session) {
     
     vals$first_instance <- first_instance(vals$course_instances)
     
-    vals$courses_with_profile <- add_neighbor_courses(course_data() %>% 
-                                                        filter(Grade_Course != vals$profile_course,
-                                                               Banner_Term >= dateRange()[1], 
-                                                               Banner_Term <= dateRange()[2]),
+    vals$courses_with_profile <- add_neighbor_courses(filtered_course_data() %>% 
+                                                        filter(Grade_Course != input$profile_course),
                                                       vals$first_instance) %>% select(-First_Taken) %>%
       left_join(student_data(), by = "IDS")
     s <- vals$courses_with_profile %>% group_by(when) %>% 
       dplyr::summarize(n = n())
   })
-  
-  # observeEvent({
-  #   vals$groups
-  #   #if (isTruthy(vals$groups) & !is.null(vals$course_instances)) TRUE
-  #   #else return()
-  # },{
-  #   req(vals$cou)
-  #   .groupBy <- vals$groups
-  #   vals$course_instances <- vals$course_instances %>%
-  #     mutate(group = if_else(IDS %in% .groupBy$IDS, .groupBy$names[1], .groupBy$names[2]))
-  # })
   
   observeEvent(neighbor_before(), {
     course <- neighbor_before()
@@ -107,6 +130,20 @@ shinyServer(function(input, output, session) {
         mutate(group = "none")
     }
   })
+  
+  observeEvent(input$resetInputs, {
+    updateSelect2Input(session, "majorFilter", "is this uses?", choices = c())
+    updateSelect2Input(session, "collegeFilter", "is this uses?", choices = c())
+    updateSelectInput(session, "groupBy", selected = "none")
+    
+    vals$majorFilter = NULL
+    vals$collegeFilter = NULL
+    vals$dateRange <- numeric_to_term(resetDateSlider(session))
+  })
+
+  output$nCourses <- renderText(nrow(filtered_course_data()))
+  
+  output$nStudents <- renderText(n_distinct(filtered_course_data()$IDS))
   
   output$CourseTitle <- renderText(vals$course_title)
   
@@ -140,7 +177,7 @@ shinyServer(function(input, output, session) {
     if (is.null(vals$course_instances)) return()
     #message("Rendering degree table for ", nrow(vals$course_instances), " rows.")
     profile_course_first_instance <- first_instance(vals$course_instances)
-    degrees_first_instance_summary <- degrees %>%
+    degrees_first_instance_summary <- degree_data() %>%
       filter(IDS %in% profile_course_first_instance$IDS,
              Degree_category == "Primary Major",
              grepl("^B", Degree)) %>%

@@ -1,5 +1,10 @@
+library(shiny)
+library(shinysky)
 library(shinythemes)
 
+load("../data/college_majors.rda")
+college_choices <- (college_majors %>% distinct(College_desc))$College_desc
+major_choices <- (college_majors %>% arrange(Major) %>% distinct(Major))$Major
 
 JScode <-
   "$(function() {
@@ -19,27 +24,6 @@ JScode <-
 })
     }, 5)})"
 
-# expSlider javascript function
-JS.termify <-
-  "
-// function to exponentiate a sliderInput
-function termSlider (sliderId, sci = false) {
-  $('#'+sliderId).data('ionRangeSlider').update({
-  'prettify': function (num) { return ('2<sup>'+num+'</sup>'); }
-  })
-}"
-
-# call expSlider for each relevant sliderInput
-JS.onload <-
-  "
-// execute upon document loading
-$(document).ready(function() {
-// wait a few ms to allow other scripts to execute
-setTimeout(function() {
-// include call for each slider
-termSlider('termRange', sci = true)
-}, 5)})
-"
 currentYear <- as.numeric(format(Sys.Date(), "%Y"))
 
 shinyUI(fluidPage("Institutional Records Explorer", theme = shinytheme("united"),
@@ -64,15 +48,41 @@ shinyUI(fluidPage("Institutional Records Explorer", theme = shinytheme("united")
              sidebarPanel(
                conditionalPanel(condition="$('html').hasClass('shiny-busy')",
                                 tags$div("Loading Data...",id="loadmessage")),
-               selectInput("subject", "Subject", c(as.character(NA)), width = "8em"),
-               selectInput("number", "Number", c(as.character(NA)), width = "8em"),
-               sliderInput("termRange", "Date Range", min = currentYear - 1, 
-                           max = currentYear, 
-                           value = c(currentYear - 1, currentYear), 
-                           dragRange = TRUE,
-                           sep = "",
-                           step = 0.5),
-               selectInput("groupBy", "Compare Across", c(as.character(NA)), width = "12em"),
+               #selectInput("subject", "Subject", c(as.character(NA)), width = "8em"),
+               #selectInput("number", "Number", c(as.character(NA)), width = "8em"),
+               tags$style(type="text/css", ".typeahead,
+        .tt-query,
+        .tt-hint {
+          font-size: 14px;
+border: 1px solid #cccccc;
+  /*! -webkit-border-radius: 4px; */
+     /*! -moz-border-radius: 4px; */
+          /*! border-radius: 4px; */
+          }"),
+               wellPanel(h3("Filter By"),
+              #           checkboxGroupInput("demographicFilter", "Demographics", inline = TRUE,
+              #                              choices = c("All"), selected = c("All"))),
+               #actionButton("showFilter", "Filter by ..."),
+              select2Input("collegeFilter", "College", 
+                           choices=college_choices,
+                           multiple = TRUE),
+              select2Input("majorFilter", "Major",
+                           choices=major_choices,
+                          multiple = TRUE),
+              sliderInput("termRange", "Date Range", min = currentYear - 1, 
+                          max = currentYear, 
+                          value = c(currentYear - 1, currentYear), 
+                          dragRange = TRUE,
+                          sep = "",
+                          step = 0.5),
+              div("Filtered dataset contains ", br(),
+                  textOutput("nCourses", inline = TRUE), " course records for ", br(),
+                  textOutput("nStudents", inline = TRUE), " distinct students.")
+              ),
+              textInput.typeahead(id = "profile_course", placeholder = "loading...", 
+                                  local = data.frame(), valueKey = "", tokens = c(), template = ""),
+              selectInput("groupBy", "Compare Across", c(as.character(NA)), width = "12em"),
+              actionButton("resetInputs", "Reset"),
                verbatimTextOutput("status"),
                width = 3),
              mainPanel(
