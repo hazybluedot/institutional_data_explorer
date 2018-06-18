@@ -55,9 +55,9 @@ valid_grades <- c("A", "A-",
                   "W", "T")
 
 first_instance <- function(course_instances) {
-  if (n_distinct(course_instances$Grade_Course) != 1) {
-    warning("first_instance assumes only one unique course, found ", n_distinct(course_instances$Grade_Course))
-  }
+  # if (n_distinct(course_instances$Grade_Course) != 1) {
+  #   warning("first_instance assumes only one unique course, found ", n_distinct(course_instances$Grade_Course))
+  # }
   course_instances %>% 
     group_by(IDS) %>% 
     arrange(Banner_Term) %>% 

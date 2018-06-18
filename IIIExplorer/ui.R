@@ -65,6 +65,7 @@ border: 1px solid #cccccc;
                #actionButton("showFilter", "Filter by ..."),
               select2Input("collegeFilter", "College", 
                            choices=college_choices,
+                           selected = c("Engineering"),
                            multiple = TRUE),
               select2Input("majorFilter", "Major",
                            choices=major_choices,
@@ -82,6 +83,10 @@ border: 1px solid #cccccc;
               textInput.typeahead(id = "profile_course", placeholder = "loading...", 
                                   local = data.frame(), valueKey = "", tokens = c(), template = ""),
               selectInput("groupBy", "Compare Across", c(as.character(NA)), width = "12em"),
+              conditionalPanel("input.groupBy == 'group'",
+                               textInput.typeahead(id = "compareCourse", placeholder = "loading...", 
+                                                   local = data.frame(), valueKey = "", tokens = c(), template = ""),
+                               helpText("Type a course here, or select one from the 'taken before' tab to the right.")),
               actionButton("resetInputs", "Reset"),
                verbatimTextOutput("status"),
                width = 3),
@@ -97,6 +102,11 @@ border: 1px solid #cccccc;
                 tabPanel("Taken After", courseWidgetUI("CoursesAfter", "Taken After"))
                 ),
       DT::dataTableOutput("DegreesAfter"),
-      width = 9)))
-  #)
+      tableOutput("memUsage"),
+      width = 9)),
+  tags$script("
+    Shiny.addCustomMessageHandler('resetValue', function(variableName) {
+      Shiny.onInputChange(variableName, null);
+    });
+  "))
 )
