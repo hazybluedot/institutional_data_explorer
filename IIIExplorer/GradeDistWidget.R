@@ -6,8 +6,8 @@ gradeDistributionUI <- function(id, label = "Grade Distribution") {
   ns <- NS(id)
   
   tagList(
-    plotOutput(ns("GradeDist"))#,
-    #verbatimTextOutput(ns("status"))
+    plotOutput(ns("GradeDist")),
+    uiOutput(ns("status"))
   )
 }
 
@@ -19,38 +19,34 @@ gradeDistribution <-
            course_data,
            groupBy = NULL,
            grouping_table = NULL) {
-    vals <- reactiveValues(courseInstances = NULL, groupingVar = NULL)
+    vals <- reactiveValues(invalid = 0)
     noteID <- NULL
     
     course_first_instance <- reactive({
       req(course_data())
       #message("GradeDist names(course_data): ", paste(names(course_data()), collapse = ", "))
-      groupVar <- groupBy()
       data <-
         left_join(course_data(),
                   first_instance(course_data()),
                   by = "IDS") %>% filter(Banner_Term == First_Taken) %>%
         mutate(Grade = collapse_letter_grade(Grade_Final_Grade))
       
-      if (groupBy() == "group") {
+      groupVar <- groupBy()
+      if (groupVar == "group") {
         if (is.reactive(grouping_table)) {
           data <- left_join(data, grouping_table(), by = "IDS")
         }
       }
-      # if (isTruthy(groupVar) &
-      #     groupVar != "NA" & groupVar %in% names(data)) {
-      #   idx <- data[, groupVar]
-      #   retVal <-
-      #     which(!is.na(idx))
-      #   data <- data[retVal, ]
-      #   if (length(retVal) > 0) {
-      #     vals$message = paste0("Filtered out ",
-      #                           length(retVal),
-      #                           " records with missing ",
-      #                           groupVar,
-      #                           " data.")
-      #   }
-      # }
+      
+      if (isTruthy(groupVar) & groupVar %in% names(data)) {
+        idx <- data[, groupBy()]
+        vals$invalid <- sum(is.na(idx))
+        valid <-
+          which(!is.na(idx))
+        data <- data[valid, ]
+      } else {
+        vals$invalid = 0
+      }
       # if (groupVar == "group" &
       #     "group" %in% names(data) &
       #     length(unique(data$group)) < 2) {
@@ -68,7 +64,20 @@ gradeDistribution <-
       data
     })
     
-    output$status <- renderPrint(paste0("grouping by ", groupBy()))
+    output$status <- renderUI({
+      if (vals$invalid) {
+        div(
+          class = "shinyalert alert alert-warning",
+          paste0(
+            "Removed ",
+            vals$invalid,
+            " rows where ",
+            groupBy(),
+            " data was missing."
+          )
+        )
+      }
+    })
     
     output$GradeDist <- renderPlot({
       # shiny::validate(need(nrow(course_first_instance()) > 0, "Need a valid course table"))
