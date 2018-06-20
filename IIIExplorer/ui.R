@@ -118,6 +118,8 @@ wellPanel(
     multiple = TRUE
   ),
   helpText("Leave blank for all. Multiple selections are additive, i.e. logical OR"),
+  checkboxInput("hasDegree", "Has Degree"),
+  helpText("When checked only students who earned a degree in one of the filtered colleges or majors will be included."),
   sliderInput(
     "termRange",
     "Date Range",

@@ -40,7 +40,10 @@ read_course_file <- function(fname) {
 read_degree_file <- function(fname) {
   load(fname)
   mutate(degrees, Degree_term = parse_date(as.character(Degree_term), "%Y%m")) %>% 
-    dplyr::rename(Degree_Term = Degree_term)
+    dplyr::rename(Degree_Term = Degree_term,
+                  College_code = Degree_college_code,
+                  College_desc = Degree_college_desc,
+                  Major = Degree_major)
 }
 
 #add_neighbor_courses <- (function(course_data) {

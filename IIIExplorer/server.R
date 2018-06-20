@@ -1,3 +1,5 @@
+#library(rlang)
+
 course_data <- reactiveFileReader(10000, NULL, course_fname, read_course_file)
 student_data <- reactiveFileReader(10000, NULL, student_fname, read_student_file)
 degree_data <- reactiveFileReader(10000, NULL, degree_fname, read_degree_file)
@@ -30,30 +32,41 @@ shinyServer(function(input, output, session) {
     vals$dateRange <- numeric_to_term(input$termRange)
   })
 
-  observe({
-    message("input$collegeFilter changed to ", input$collegeFilter)
-    vals$collegeFilter <- input$collegeFilter
-  })
-  
-  observe({
-    vals$majorFilter <- input$majorFilter
-  })
+  # reactiveValues is used here because the updateSelect2Input, used for reset
+  # button action, does not seem to let shiny see that the input$collegeFilter
+  # has changed.
+  observe({ vals$collegeFilter <- input$collegeFilter })
+  observe({ vals$majorFilter <- input$majorFilter })
 
   filtered_course_data <- reactive({
-      message("vals$collegeFilter changed to ", vals$collegeFilter)
+      #message("input$collegeFilter changed to '", input$collegeFilter, "'")
       filtered_data <- course_data() %>% filter(Banner_Term >= vals$dateRange[1],
                                                 Banner_Term <= vals$dateRange[2])
       
+      filter_parts <- c()
       if (isTruthy(vals$collegeFilter)) {
-        .IDS <- (course_data() %>% filter(College_desc %in% vals$collegeFilter) %>% distinct(IDS))$IDS
-        filtered_data <- filtered_data %>% filter(IDS %in% .IDS)
+        filter_parts <- c(filter_parts, "College_desc %in% vals$collegeFilter")
       }
       
       if (isTruthy(vals$majorFilter)) {
-        .IDS <- (course_data() %>% filter(Major %in% vals$majorFilter) %>% distinct(IDS))$IDS
+        filter_parts <- c(filter_parts, "Major %in% vals$majorFilter")
+      }
+      
+      if (length(filter_parts) > 0) {
+        message("filtering with '", paste(filter_parts, collapse = " & "))
+        .IDS <- (filter(course_data(), !!!rlang::parse_exprs(paste(filter_parts, collapse = " | "))))$IDS
         filtered_data <- filtered_data %>% filter(IDS %in% .IDS)
       }
-      message("Filtered data contains ", n_distinct(filtered_data$IDS), " distinct students")
+      
+      if (input$hasDegree) {
+        filtered_degrees <- degree_data() %>% filter(IDS %in% filtered_data$IDS)
+        if (length(filter_parts) > 0) {
+          message("filtering degrees")
+          filtered_degrees <- filtered_degrees %>% filter(!!!rlang::parse_exprs(paste(filter_parts, collapse = " | ")))
+        }
+        filtered_data <- filter(filtered_data, IDS %in% filtered_degrees$IDS)
+      }
+      
       return(filtered_data)
   })
   
@@ -134,9 +147,10 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$resetInputs, {
-    updateSelect2Input(session, "majorFilter", "is this uses?", choices = c())
-    updateSelect2Input(session, "collegeFilter", "is this uses?", choices = c())
+    updateSelect2Input(session, "majorFilter", "is this uses?", choices = NULL)
+    updateSelect2Input(session, "collegeFilter", "is this uses?", choices = NULL)
     updateSelectInput(session, "groupBy", selected = "none")
+    updateCheckboxInput(session, "hasDegree", value = FALSE)
     
     vals$majorFilter = character(0)
     vals$collegeFilter = character(0)
@@ -193,7 +207,7 @@ shinyServer(function(input, output, session) {
       filter(IDS %in% profile_course_first_instance$IDS,
              Degree_category == "Primary Major",
              grepl("^B", Degree)) %>%
-      group_by(Degree_major) %>%
+      group_by(Major) %>%
       #semi_join(degrees, course.ID.and.grade, by="IDS") %>% filter(grepl("B",Degree)) %>%
       dplyr::summarize(Ntotal=n_distinct(IDS)) %>%
       arrange(-Ntotal) %>%
