@@ -39,35 +39,42 @@ shinyServer(function(input, output, session) {
   observe({ vals$majorFilter <- input$majorFilter })
 
   filtered_course_data <- reactive({
-      #message("input$collegeFilter changed to '", input$collegeFilter, "'")
-      filtered_data <- course_data() %>% filter(Banner_Term >= vals$dateRange[1],
-                                                Banner_Term <= vals$dateRange[2])
-      
-      filter_parts <- c()
-      if (isTruthy(vals$collegeFilter)) {
-        filter_parts <- c(filter_parts, "College_desc %in% vals$collegeFilter")
-      }
-      
-      if (isTruthy(vals$majorFilter)) {
-        filter_parts <- c(filter_parts, "Major %in% vals$majorFilter")
-      }
-      
+    req(as.logical(all(input$filterBoolean %in% c("&", "|"))))
+    filtered_data <-
+      course_data() %>% filter(Banner_Term >= vals$dateRange[1],
+                               Banner_Term <= vals$dateRange[2])
+    
+    filter_parts <- c()
+    if (isTruthy(vals$collegeFilter)) {
+      filter_parts <-
+        c(filter_parts, "College_desc %in% vals$collegeFilter")
+    }
+    
+    if (isTruthy(vals$majorFilter)) {
+      filter_parts <- c(filter_parts, "Major %in% vals$majorFilter")
+    }
+    
+    if (length(filter_parts) > 0) {
+      .IDS <-
+        (filter(course_data(),!!!rlang::parse_exprs(
+          paste(filter_parts, collapse = input$filterBoolean)
+        )))$IDS
+      filtered_data <- filtered_data %>% filter(IDS %in% .IDS)
+    }
+    
+    if (input$hasDegree) {
+      filtered_degrees <-
+        degree_data() %>% filter(IDS %in% filtered_data$IDS)
       if (length(filter_parts) > 0) {
-        message("filtering with '", paste(filter_parts, collapse = " & "))
-        .IDS <- (filter(course_data(), !!!rlang::parse_exprs(paste(filter_parts, collapse = " | "))))$IDS
-        filtered_data <- filtered_data %>% filter(IDS %in% .IDS)
+        message("filtering degrees")
+        filtered_degrees <-
+          filtered_degrees %>% filter(!!!rlang::parse_exprs(paste(filter_parts, collapse = " | ")))
       }
-      
-      if (input$hasDegree) {
-        filtered_degrees <- degree_data() %>% filter(IDS %in% filtered_data$IDS)
-        if (length(filter_parts) > 0) {
-          message("filtering degrees")
-          filtered_degrees <- filtered_degrees %>% filter(!!!rlang::parse_exprs(paste(filter_parts, collapse = " | ")))
-        }
-        filtered_data <- filter(filtered_data, IDS %in% filtered_degrees$IDS)
+      filtered_data <-
+        filter(filtered_data, IDS %in% filtered_degrees$IDS)
       }
-      
-      return(filtered_data)
+    
+    return(filtered_data)
   })
   
   course_list <- reactive({

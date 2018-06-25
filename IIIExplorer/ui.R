@@ -111,6 +111,8 @@ wellPanel(
     multiple = TRUE
   ),
   helpText("Leave blank for all. Multiple selections are additive, i.e. logical OR"),
+  selectInput("filterBoolean", NULL, choices = c(AND = "&", OR = "|"), selected = "AND", width = "5em"),
+  helpText("combine college and major filter with either logical AND or OR."),
   select2Input(
     "majorFilter",
     "Major",
