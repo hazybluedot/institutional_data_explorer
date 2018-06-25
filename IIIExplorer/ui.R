@@ -82,7 +82,7 @@ wellPanel(
     template = ""
   ),
   helpText("Select a course to examin"),
-  selectInput("groupBy", "Compare Across", c(as.character(NA)), width = "12em"),
+  selectInput("groupBy", "Compare Across", c("None" = "none"), width = "12em"),
   conditionalPanel(
     "input.groupBy == 'group'",
     textInput.typeahead(

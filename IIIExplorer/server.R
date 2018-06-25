@@ -105,7 +105,7 @@ shinyServer(function(input, output, session) {
   
   observe({
     grouping_vars <- student_data() %>% select_if(~(is.factor(.) & length(levels(.)) <= 3)) %>% names()
-    updateSelectInput(session, "groupBy", choices = c("None" = as.character(NA), "Selected Course" = "group", grouping_vars))
+    updateSelectInput(session, "groupBy", choices = c("None" = "none", "Selected Course" = "group", grouping_vars))
     #updateCheckboxGroupInput(session, "demographicFilter", choices = c("All", grouping_vars))
   })
 

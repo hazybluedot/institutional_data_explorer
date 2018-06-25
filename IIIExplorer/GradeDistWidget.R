@@ -47,20 +47,6 @@ gradeDistribution <-
       } else {
         vals$invalid = 0
       }
-      # if (groupVar == "group" &
-      #     "group" %in% names(data) &
-      #     length(unique(data$group)) < 2) {
-      #   noteID <-
-      #     showNotification(
-      #       "No course selected. Select a course from the 'Taken Before' tab to compare.",
-      #       type = "warning",
-      #       duration = 5
-      #     )
-      # } else {
-      #   if (!is.null(noteID))
-      #     removeNotification(noteID)
-      # }
-      
       data
     })
     
@@ -80,13 +66,14 @@ gradeDistribution <-
     })
     
     output$GradeDist <- renderPlot({
-      # shiny::validate(need(nrow(course_first_instance()) > 0, "Need a valid course table"))
-      # groupingVar <- if (is.reactive(groupBy)) {
-      #   groupBy()
-      # } else {
-      #   NULL
-      # }
-      grade_distribution(course_first_instance(), groupBy())
+      grouping_vars <- c("Grade")
+      if (groupBy() != "none") {
+        grouping_vars <- c(grouping_vars, groupBy())
+      }
+      grouped_data <- course_first_instance() %>% group_by_at(grouping_vars)
+      shiny::validate(need(min(attr(grouped_data, 'group_sizes')) >= 10, 
+                           "Smallest group size is less than 10. Increase the filter scope to view the grade distribution."))
+      grade_distribution(grouped_data)
     })
     
     #return(reactive(input$DateRange))

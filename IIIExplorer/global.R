@@ -74,12 +74,7 @@ fetch_neighbor_courses <- function(courses_with_profile, profile_course, Ntotal,
       purrr::map(select, -when)
 }
 
-grade_distribution <- function(course_instances, groupingVar = NULL) {
-  course_title <- firstna(as.character(unique(course_instances$Grade_Course_Title)))
-  # if (!is.null(groupingVar)) {
-  #   message("Grouping grade distribution by ", groupingVar, " with values ", paste(unique(course_instances[[groupingVar]]), collapse = ", "))
-  # }
-  
+grade_distribution <- function(course_instances) {
   # this is a somewhat ugly geom_blank hack to force enough extra space at the top of the plot to hold the 
   # bar labels. 
   top_bar <- function(groupingVar) {
@@ -104,6 +99,11 @@ grade_distribution <- function(course_instances, groupingVar = NULL) {
   aes_now <- function(...) {
     structure(list(...),  class = "uneval")
   }
+  
+  # Work starts here
+  course_title <- firstna(as.character(unique(course_instances$Grade_Course_Title)))
+  # TODO: one of these days we need to go through and make naming consistent, i.e. name_case or camelCase
+  groupingVar <- attr(course_instances, 'vars')[2]
   
   isGrouping <- (isTruthy(groupingVar) & groupingVar %in% names(course_instances))
   
