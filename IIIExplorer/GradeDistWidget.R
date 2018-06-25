@@ -67,14 +67,16 @@ gradeDistribution <-
     
     output$GradeDist <- renderPlot({
       grouping_vars <- c("Grade")
-      if (groupBy() != "none") {
+      if (groupBy() != "none" & groupBy() %in% names(course_first_instance())) {
         grouping_vars <- c(grouping_vars, groupBy())
       }
       grouped_data <- course_first_instance() %>% group_by_at(grouping_vars)
+      
+      # dplyr conveniently calculates group sizes as part of group_by, and adds
+      # this information as an attribute to the data frame.
       shiny::validate(need(min(attr(grouped_data, 'group_sizes')) >= 10, 
                            "Smallest group size is less than 10. Increase the filter scope to view the grade distribution."))
+      # TODO: we should move '10' into a config file to avoid magic numbers sprinkled around the codebase
       grade_distribution(grouped_data)
     })
-    
-    #return(reactive(input$DateRange))
   }
