@@ -81,7 +81,7 @@ wellPanel(
     tokens = c(),
     template = ""
   ),
-  helpText("Select a course to examin"),
+  helpText("Select a course to examine"),
   selectInput("groupBy", "Compare Across", c("None" = "none"), width = "12em"),
   conditionalPanel(
     "input.groupBy == 'group'",
