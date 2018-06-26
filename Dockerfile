@@ -19,19 +19,21 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev 
 
 # basic shiny functionality
+
 RUN R -e "install.packages(c('shiny', 'rmarkdown'), repos='https://cloud.r-project.org/')"
 
 # install dependencies of the III app
 RUN R -e "install.packages(c('tidyverse', 'DT', 'rms', 'shinythemes', 'devtools'), repos='https://cloud.r-project.org/')"
+#RUN R -e "install.packages('devtools', repos='https://cloud.r-project.org/')"
 
 # install more dependencies of the III app
-RUN -R -e "devtools::install_github('AnalytixWare/ShinySky')"
+RUN R -e "devtools::install_github('AnalytixWare/ShinySky')"
 
 # copy the app to the image
-RUN mkdir /root/data
+RUN mkdir /root/data /root/IIIExplorer
+
 COPY data /root/data
 
-RUN mkdir /root/IIIExplorer
 COPY IIIExplorer /root/IIIExplorer
 
 COPY Rprofile.site /usr/lib/R/etc/
