@@ -20,7 +20,8 @@ grade_levels <- c("A", "A-",
                   "C+", "C", "C-",
                   "D+", "D", "D-",
                   "T",
-                  "F", "NR", "NG", "F *", "W", "WG")
+                  "F", "NR", "NG", "F *", "W", "WG", 
+                  "I", "P", "RP", "AUD", "X", "EQ", "S", "NS")
 
 convert_grades_numeric <- function(x, Tvalue = 2.0) {
   A <- factor(x, levels = grade_levels)
@@ -54,10 +55,43 @@ valid_grades <- c("A", "A-",
                   "NR", "NG",
                   "W", "T")
 
-first_instance <- function(course_instances) {
+course_instances <- function(.data, profile_course) {
+  # instances <- .data %>%
+  #   filter(
+  #     Grade_Course == profile_course,
+  #     !is.null(Grade_Final_Grade),
+  #     Grade_Final_Grade %in% valid_grades)
+  
+  .data <- as.data.table(.data)
+  instances <- .data[Grade_Course == profile_course, unique(Banner_Term), by = IDS
+                     ][, unit:=1
+                       ][, attempt:=cumsum(unit), by = IDS
+                         ][.data[Grade_Course == profile_course], on = c("IDS", V1 = "Banner_Term")]
+  setnames(instances, "V1", "Banner_Term")
+  
+  #message("names(instances): c(", paste(names(instances), collapse = ", "), ")")
+  structure(instances,
+            first_instances = which(instances$attempt == 1),
+            profile_course = profile_course,
+            distinct_IDS = unique(instances$IDS)
+            )
+  # attr(instances, "first_instances") <- which(instances$attempt == 1)
+  # attr(instances, "profile_course") <- profile_course
+  # attr(instances, "distinct_IDS") <- unique(instances$IDS)
+  # instances
+}
+
+first_instance <- function(course_instances, old.method = FALSE) {
   # if (n_distinct(course_instances$Grade_Course) != 1) {
   #   warning("first_instance assumes only one unique course, found ", n_distinct(course_instances$Grade_Course))
   # }
+  if (!is.null(attr(course_instances, "first_instances")) & old.method == FALSE) {
+    idx <- attr(course_instances, "first_instances")
+    return(course_instances[idx,])
+  }
+
+  message("first_instance: attributes(course_instances): ", paste(names(attributes(course_instances)), collapse = ", "))
+  message("first_instance: using old method")
   course_instances %>% 
     group_by(IDS) %>% 
     arrange(Banner_Term) %>% 

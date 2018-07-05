@@ -109,19 +109,16 @@ shinyServer(function(input, output, session) {
     #updateCheckboxGroupInput(session, "demographicFilter", choices = c("All", grouping_vars))
   })
 
-  course_instances <- reactive({
-    req(input$profile_course)
-    vals$course_instances <- filter(
-      filtered_course_data(),
-      Grade_Course == input$profile_course,
-      !is.null(Grade_Final_Grade),
-      Grade_Final_Grade %in% valid_grades
-    ) %>%
-      left_join(student_data(), by = "IDS")
+  profile_course_instances <- reactive({
+    req(input$profile_course, filtered_course_data())
+    course_instances(filtered_course_data(), input$profile_course)
   })
   
   profile_course_first_instance <- reactive({ 
-    first_instance(course_instances()) 
+    fi <- first_instance(profile_course_instances()) 
+    attr(fi, "profile_course") <- input$profile_course
+    attr(fi, "distinct_IDS") <- unique(fi$IDS)
+    fi
   })
   
   course_grouping <- reactive({ #})
@@ -132,7 +129,7 @@ shinyServer(function(input, output, session) {
       filter(Grade_Course == vals$grouping_course, when == "before")
     .IDS <- took_selected_before$IDS
     
-    course_instances() %>%
+    profile_course_instances() %>%
       mutate(group = if_else(IDS %in% .IDS,
                              paste0("Took ", vals$grouping_course, " before"),
                              paste0("Did not take ", vals$grouping_course, " before"))) %>%
@@ -143,7 +140,7 @@ shinyServer(function(input, output, session) {
     req(input$profile_course)
     add_neighbor_courses(filtered_course_data() %>% 
                            filter(Grade_Course != input$profile_course),
-                         profile_course_first_instance()) %>% select(-First_Taken) %>%
+                         profile_course_first_instance()) %>%
       left_join(student_data(), by = "IDS")
   })
   
@@ -181,8 +178,9 @@ shinyServer(function(input, output, session) {
   })
   
   #output$status <- renderPrint(if (!is.na(input$groupBy)) paste0("Grouping by ", input$groupBy))
+  #callModule(classificationTree, "SuccessAnalysis", courses_with_profile, profile_course_instances)
   
-  callModule(gradeDistribution, "GradeDist", course_instances, reactive(input$groupBy), course_grouping)
+  callModule(gradeDistribution, "GradeDist", profile_course_instances, reactive(input$groupBy), course_grouping)
   #callModule(successAnalysis, "SuccessAnalysis", reactive(vals$courses_with_profile), reactive(vals$course_instances), reactive(input$groupBy), neighbor_before)
   
   neighbor_before <- callModule(courseWidget,
@@ -207,11 +205,11 @@ shinyServer(function(input, output, session) {
   #output$status  <- renderPrint(paste0(neighbor_before(), " selected"))
   
   output$DegreesAfter <- DT::renderDataTable({
-    req(vals$course_instances)
+    req(profile_course_first_instance())
     #message("Rendering degree table for ", nrow(vals$course_instances), " rows.")
-    profile_course_first_instance <- first_instance(vals$course_instances)
+    #profile_course_first_instance <- first_instance(vals$course_instances)
     degrees_first_instance_summary <- degree_data() %>%
-      filter(IDS %in% profile_course_first_instance$IDS,
+      filter(IDS %in% profile_course_first_instance()$IDS,
              Degree_category == "Primary Major",
              grepl("^B", Degree)) %>%
       group_by(Major) %>%

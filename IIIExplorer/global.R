@@ -12,16 +12,16 @@ if (dir.exists(local_dir)) {
  setwd("/root/IIIExplorer")
 }
 
-course_fname <- "../data/course_data.rda"
-student_fname <- "../data/student_data.rda"
-degree_fname <- "../data/degrees_dummyIDs.rda"
+course_fname <- paste0(getwd(), "/../data/course_data.rda")
+student_fname <- paste0(getwd(), "/../data/student_data.rda")
+degree_fname <- paste0(getwd(), "/../data/degrees_dummyIDs.rda")
 
 params <- list(ncourses = 5, 
                ndegrees = 8)
 
 source("utils.R", local = TRUE)
 
-read_student_file <- function(fname) {
+read_student_file <- function(fname = student_fname) {
   load(fname)
   student_data %>% dplyr::rename(Tuition = Tuition_IO_Desc,
                           URM = UnderRepMin,
@@ -31,13 +31,14 @@ read_student_file <- function(fname) {
     filter(Gender %in% c("M", "F"))
 }
 
-read_course_file <- function(fname) {
+read_course_file <- function(fname = course_fname) {
   load(fname)
+  stop_for_problems(course_data)
   course_data %>% mutate(Banner_Term = parse_date(as.character(Banner_Term), "%Y%m"),
                          Grade_Final_Grade = parse_factor(Grade_Final_Grade, grade_levels))
 }
 
-read_degree_file <- function(fname) {
+read_degree_file <- function(fname = degree_fname) {
   load(fname)
   mutate(degrees, Degree_term = parse_date(as.character(Degree_term), "%Y%m")) %>% 
     dplyr::rename(Degree_Term = Degree_term,
@@ -49,8 +50,12 @@ read_degree_file <- function(fname) {
 #add_neighbor_courses <- (function(course_data) {
 add_neighbor_courses <- function(course_data, profile_course_first_instance) {
      #<- first_instance(course_instances)
-    
-    right_join(course_data, profile_course_first_instance %>% select(IDS, First_Taken), by = "IDS") %>% 
+  message("names(pcfi): ", paste(names(profile_course_first_instance), collapse = ", "))
+  message("attributes: ", paste(names(attributes(profile_course_first_instance)), collapse = ", "))
+    right_join(course_data, 
+               profile_course_first_instance %>% 
+                 select(IDS, First_Taken = Banner_Term), 
+               by = "IDS") %>% 
       filter(Registered_credit_hours > 0,
              IDS %in% profile_course_first_instance$IDS) %>% # Filter out lab courses, which have credit hours set to 0
       mutate(when = case_when(Banner_Term < First_Taken ~ "before",
@@ -149,4 +154,5 @@ grade_distribution <- function(course_instances) {
 source("CourseWidget.R", local = TRUE)
 source("GradeDistWidget.R", local = TRUE)
 source("successAnalysis.R", local = TRUE)
+source("TreeWidget.R", local = TRUE)
 #source("ENGE/Studies/Investing in Instructors/III_Dashboard")
