@@ -1,21 +1,18 @@
 #library(rlang)
 
-course_data <- reactiveFileReader(10000, NULL, course_fname, read_course_file)
-student_data <- reactiveFileReader(10000, NULL, student_fname, read_student_file)
-degree_data <- reactiveFileReader(10000, NULL, degree_fname, read_degree_file)
+course_data <- load_course_data()
+student_data <- load_student_data()
+degree_data <- load_degree_data()
 
 shinyServer(function(input, output, session) {
-  vals <- reactiveValues(profile_course = NULL, 
-                         dateRange = c(),
+  vals <- reactiveValues(dateRange = c(),
                          collegeFilter = NULL,
                          majorFilter = NULL,
-                         course_instances = NULL,
-                         courses_with_profile = NULL,
                          grouping_course = NULL,
                          valid = FALSE)
   
   resetDateSlider <- function(session) {
-    date_range <- as.numeric(format(range(course_data()$Banner_Term), "%Y"))
+    date_range <- range(as.numeric(course_data$term) %/% 100)
     updateSliderInput(session, "termRange", 
                       min = date_range[1], 
                       max = date_range[2], 
@@ -23,7 +20,7 @@ shinyServer(function(input, output, session) {
     return(date_range)
   }
   
-  observeEvent(course_data(), {
+  observe({
     ## Set min and max date based on data
     resetDateSlider(session)
   })
@@ -40,38 +37,43 @@ shinyServer(function(input, output, session) {
 
   filtered_course_data <- reactive({
     req(as.logical(all(input$filterBoolean %in% c("&", "|"))))
-    filtered_data <-
-      course_data() %>% filter(Banner_Term >= vals$dateRange[1],
-                               Banner_Term <= vals$dateRange[2])
+    #message("filter stage 0 -- names: ", paste(names(course_data), collapse = ", "))
+    #message("filter stage 0 -- nrows: ", nrow(course_data))
+    #message("dateRange ", paste(vals$dateRange, collapse = " thru "))    
+    filtered_data <- course_data %>% 
+      filter(between(term, vals$dateRange[1], vals$dateRange[2]))
     
+    #message("filter stage 1 -- nrows: ", nrow(filtered_data))
     filter_parts <- c()
     if (isTruthy(vals$collegeFilter)) {
       filter_parts <-
-        c(filter_parts, "College_desc %in% vals$collegeFilter")
+        c(filter_parts, "college_desc %in% vals$collegeFilter")
     }
     
     if (isTruthy(vals$majorFilter)) {
-      filter_parts <- c(filter_parts, "Major %in% vals$majorFilter")
+      filter_parts <- c(filter_parts, "major %in% vals$majorFilter")
     }
     
     if (length(filter_parts) > 0) {
       .IDS <-
-        (filter(course_data(),!!!rlang::parse_exprs(
+        (filter(course_data,!!!rlang::parse_exprs(
           paste(filter_parts, collapse = input$filterBoolean)
-        )))$IDS
-      filtered_data <- filtered_data %>% filter(IDS %in% .IDS)
+        )))$id
+      filtered_data <- filtered_data %>% filter(id %in% .IDS)
+      #message("filter stage 2 -- ", paste(filter_parts, collapse = input$filterBoolean))
+      #message("filter stage 2 -- nrows: ", nrow(filtered_data))
     }
     
     if (input$hasDegree) {
       filtered_degrees <-
-        degree_data() %>% filter(IDS %in% filtered_data$IDS)
+        degree_data %>% filter(id %in% filtered_data$id)
       if (length(filter_parts) > 0) {
-        message("filtering degrees")
+        #message("filtering degrees")
         filtered_degrees <-
           filtered_degrees %>% filter(!!!rlang::parse_exprs(paste(filter_parts, collapse = " | ")))
       }
       filtered_data <-
-        filter(filtered_data, IDS %in% filtered_degrees$IDS)
+        filter(filtered_data, id %in% filtered_degrees$id)
       }
     
     return(filtered_data)
@@ -79,33 +81,40 @@ shinyServer(function(input, output, session) {
   
   course_list <- reactive({
     filtered_course_data() %>%
-      filter(Registered_credit_hours > 0) %>%
-      separate(Grade_Course, c("Course_Subject", "Course_Number"), remove = FALSE) %>% 
-      select(Grade_Course, Course_Subject, Course_Number, Grade_Course_Title) %>% 
-      na.omit() %>% distinct() %>% mutate(Course_ID = stringr::str_replace(Grade_Course, "_", " ")) %>% arrange(Course_Subject, Course_Number) 
+      filter(credit_hours > 0 | is.na(credit_hours)) %>%
+      select(course, subject, number, title = grade_title) %>%
+      na.omit() %>% distinct() %>% 
+      mutate(Course_ID = stringr::str_replace(course, "_", " ")) %>% 
+      arrange(subject, number) 
   })
   
   observe({
+    message("filtered_course_data has ", nrow(filtered_course_data()), " rows.")
+    message("course_list has ", nrow(course_list()), " rows.")
     updateTextInput.typeahead(session, "profile_course", 
                               course_list(), 
-                              valueKey = "Grade_Course",
-                              tokens = paste(course_list()$Course_Subject, course_list()$Course_Number, sep = ""),
+                              valueKey = "course",
+                              tokens = paste(course_list()$subject, course_list()$number, sep = ""),
                               placeholder = "e.g. ESM 2204",
-                              template = "<p class = 'repo-language'>{{Course_Subject}} {{Course_Number}}<p> 
-                              <p class = 'repo-description'>{{Grade_Course_Title}}</p>"
+                              template = "<p class = 'repo-language'>{{subject}} {{number}}<p> 
+                              <p class = 'repo-description'>{{title}}</p>"
                               )
     updateTextInput.typeahead(session, "compareCourse",
                               course_list(),
-                              valueKey = "Grade_Course",
-                              tokens = paste(course_list()$Course_Subject, course_list()$Course_Number, sep = ""),
+                              valueKey = "course",
+                              tokens = paste(course_list()$subject, course_list()$number, sep = ""),
                               placeholder = "e.g. ESM 2104",
-                              template = "<p class = 'repo-language'>{{Course_Subject}} {{Course_Number}}<p> 
-                              <p class = 'repo-description'>{{Grade_Course_Title}}</p>")
+                              template = "<p class = 'repo-language'>{{subject}} {{number}}<p> 
+                              <p class = 'repo-description'>{{title}}</p>")
   })
   
   observe({
-    grouping_vars <- student_data() %>% select_if(~(is.factor(.) & length(levels(.)) <= 3)) %>% names()
-    updateSelectInput(session, "groupBy", choices = c("None" = "none", "Selected Course" = "group", grouping_vars))
+    grouping_vars <- student_data %>% 
+      select_if(~(is.factor(.) & length(levels(.)) <= 3)) %>% 
+      names()
+    updateSelectInput(session, "groupBy", 
+                      choices = c("None" = "none", "Selected Course" = "group", 
+                      grouping_vars))
     #updateCheckboxGroupInput(session, "demographicFilter", choices = c("All", grouping_vars))
   })
 
@@ -115,9 +124,10 @@ shinyServer(function(input, output, session) {
   })
   
   profile_course_first_instance <- reactive({ 
-    fi <- first_instance(profile_course_instances()) 
+    fi <- first_instance(profile_course_instances()) %>%
+      left_join(student_data, by = "id")
     attr(fi, "profile_course") <- input$profile_course
-    attr(fi, "distinct_IDS") <- unique(fi$IDS)
+    attr(fi, "distinct_IDS") <- unique(fi$id)
     fi
   })
   
@@ -126,11 +136,11 @@ shinyServer(function(input, output, session) {
     req(vals$grouping_course)
     
     took_selected_before <- courses_with_profile() %>%
-      filter(Grade_Course == vals$grouping_course, when == "before")
-    .IDS <- took_selected_before$IDS
+      filter(course == vals$grouping_course, when == "before")
+    .IDS <- took_selected_before$id
     
     profile_course_instances() %>%
-      mutate(group = if_else(IDS %in% .IDS,
+      mutate(group = if_else(id %in% .IDS,
                              paste0("Took ", vals$grouping_course, " before"),
                              paste0("Did not take ", vals$grouping_course, " before"))) %>%
       select(IDS, group)
@@ -139,9 +149,9 @@ shinyServer(function(input, output, session) {
   courses_with_profile <- reactive({
     req(input$profile_course)
     add_neighbor_courses(filtered_course_data() %>% 
-                           filter(Grade_Course != input$profile_course),
+                           filter(course != input$profile_course),
                          profile_course_first_instance()) %>%
-      left_join(student_data(), by = "IDS")
+      left_join(student_data, by = "id")
   })
   
   observe({ vals$grouping_course <- input$compareCourse })
@@ -163,7 +173,7 @@ shinyServer(function(input, output, session) {
 
   output$nCourses <- renderText(nrow(filtered_course_data()))
   
-  output$nStudents <- renderText(n_distinct(filtered_course_data()$IDS))
+  output$nStudents <- renderText(n_distinct(filtered_course_data()$id))
   
   output$CourseTitle <- renderText({
     ## technically this only needs to recompute on input$profile_course change, so it could be a 
@@ -172,15 +182,15 @@ shinyServer(function(input, output, session) {
     first(as.character(
       filter(
         filtered_course_data(),
-        Grade_Course == input$profile_course
-      )$Grade_Course_Title
+        course == input$profile_course
+      )$grade_title
     ))
   })
   
   #output$status <- renderPrint(if (!is.na(input$groupBy)) paste0("Grouping by ", input$groupBy))
   #callModule(classificationTree, "SuccessAnalysis", courses_with_profile, profile_course_instances)
   
-  callModule(gradeDistribution, "GradeDist", profile_course_instances, reactive(input$groupBy), course_grouping)
+  callModule(gradeDistribution, "GradeDist", profile_course_first_instance, reactive(input$groupBy), course_grouping)
   #callModule(successAnalysis, "SuccessAnalysis", reactive(vals$courses_with_profile), reactive(vals$course_instances), reactive(input$groupBy), neighbor_before)
   
   neighbor_before <- callModule(courseWidget,
@@ -208,28 +218,18 @@ shinyServer(function(input, output, session) {
     req(profile_course_first_instance())
     #message("Rendering degree table for ", nrow(vals$course_instances), " rows.")
     #profile_course_first_instance <- first_instance(vals$course_instances)
-    degrees_first_instance_summary <- degree_data() %>%
-      filter(IDS %in% profile_course_first_instance()$IDS,
-             Degree_category == "Primary Major",
-             grepl("^B", Degree)) %>%
-      group_by(Major) %>%
+    degrees_first_instance_summary <- degree_data %>%
+      filter(id %in% profile_course_first_instance()$id,
+             category == "Primary Major",
+             grepl("^B", degree)) %>%
+      group_by(major) %>%
       #semi_join(degrees, course.ID.and.grade, by="IDS") %>% filter(grepl("B",Degree)) %>%
-      dplyr::summarize(Ntotal=n_distinct(IDS)) %>%
-      arrange(-Ntotal) %>%
+      dplyr::summarize(nTotal=n_distinct(id)) %>%
+      arrange(-nTotal) %>%
       head(n = params$ndegrees)
   },
   options = list(searching = FALSE,
                  lengthChange = FALSE),
   selection = "single",
   server = FALSE)
-  
-  # env <- environment()  # can use globalenv(), parent.frame(), etc
-  # output$memUsage <- renderTable({
-  #   data.frame(
-  #     object = ls(env),
-  #     size = unlist(lapply(ls(env), function(x) {
-  #       object.size(get(x, envir = env, inherits = FALSE))
-  #     }))
-  #   ) %>% arrange(-size)
-  # })
 })

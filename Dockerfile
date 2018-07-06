@@ -25,13 +25,15 @@ RUN R -e "install.packages(c('shiny', 'rmarkdown'), repos='https://cloud.r-proje
 RUN R -e "install.packages(c('tidyverse', 'DT', 'rms', 'shinythemes', 'devtools'), repos='https://cloud.r-project.org/')"
 
 # install more dependencies of the III app
-RUN R -e "devtools::install_github('AnalytixWare/ShinySky')"
+RUN R -e "devtools::install_github('AnalytixWare/ShinySky'); devtools::install_github('hazybluedot/racadia')"
 
 # copy the app to the image
-RUN mkdir /root/data
+RUN mkdir /root/deepr /root/data /root/IIIExplorer
+COPY deepr /root/deepr
 COPY data /root/data
 
-RUN mkdir /root/IIIExplorer
+RUN -R -e "devtools::install('/root/deepr')"
+
 COPY IIIExplorer /root/IIIExplorer
 
 COPY Rprofile.site /usr/lib/R/etc/

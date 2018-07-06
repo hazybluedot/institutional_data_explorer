@@ -1,6 +1,4 @@
 library(shiny)
-library(Hmisc)
-library(rms)
 
 collapse_grade_success <- function(grade) {
   fct_collapse(collapse_letter_grade(grade),
@@ -113,7 +111,7 @@ successAnalysis <- function(input, output, session, course_data, profile_course,
       select(IDS, Grade = First_Grade) %>% 
       mutate(status = collapse_grade_success(Grade),
              Success = (status == "Success")) %>%
-      left_join(predictor_course_table, by = "IDS") %>% na.omit() %>% droplevels()
+      left_join(predictor_course_table, by = "id") %>% na.omit() %>% droplevels()
     
     vals$logit_formula <- paste0("Success ~ ", paste(predictor_vars, collapse = " + "))
     #vals$logit_fit <- rms::lrm(as.formula(vals$logit_formula), data = na.omit(vals$data))

@@ -24,29 +24,30 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   #vals = reactiveValues(selected = NULL, courseInstances = NULL, profileIDS = c())
   #reset = reactiveValues(sel = "")
   
-  selected <- reactive({ course_table()[input$CourseTable_rows_selected,]$Grade_Course })
+  selected <- reactive({ course_table()[input$CourseTable_rows_selected,]$course })
   
-  courseInstances <- reactive({
+  selected_course_first_instances <- reactive({
     req(selected())  
-    profileIDS <- unique(profile_course()$IDS)
-    filter(course_data(), 
-                          Grade_Course == selected(), 
+    profileIDS <- unique(profile_course()$id)
+    instances <- filter(course_data(), 
+                          course == selected(), 
                           when == .when,
-                          IDS %in% profileIDS,
-                          !is.null(Grade_Final_Grade), 
-                          Grade_Final_Grade %in% valid_grades)
+                          id %in% profileIDS,
+                          !is.null(final_grade), 
+                          final_grade %in% valid_grades)
+    first_instance(instances)
   })
   
   course_table <- reactive({
-    profileIDS <- unique(profile_course()$IDS)
+    profileIDS <- unique(profile_course()$id)
     Ntotal <- length(profileIDS)
     
     course_data() %>%
       filter(when == .when,
-             IDS %in% profileIDS) %>%
-      group_by(Grade_Course) %>%
-      dplyr::summarize(Title = dplyr::first(Grade_Course_Title),
-                N = n_distinct(IDS),
+             id %in% profileIDS) %>%
+      group_by(course) %>%
+      dplyr::summarize(Title = dplyr::first(grade_title),
+                N = n_distinct(id),
                 pct = N / Ntotal) %>%
       arrange(-N) %>% filter(pct > 0.10)    
   })
@@ -65,7 +66,7 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   },
   server = FALSE)
 
-  callModule(gradeDistribution, "GradeDist", courseInstances, groupingVar)
+  callModule(gradeDistribution, "GradeDist", selected_course_first_instances, groupingVar)
 
   return(selected)
 }
