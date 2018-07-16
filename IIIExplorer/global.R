@@ -60,9 +60,9 @@ load_degree_data <- function(fname = degree_fname) {
 
 #add_neighbor_courses <- (function(course_data) {
 add_neighbor_courses <- function(course_data, profile_course_first_instance) {
-     #<- first_instance(course_instances)
-  message("names(pcfi): ", paste(names(profile_course_first_instance), collapse = ", "))
-  message("attributes: ", paste(names(attributes(profile_course_first_instance)), collapse = ", "))
+  #<- first_instance(course_instances)
+  #message("names(pcfi): ", paste(names(profile_course_first_instance), collapse = ", "))
+  #message("attributes: ", paste(names(attributes(profile_course_first_instance)), collapse = ", "))
     right_join(course_data, 
                profile_course_first_instance %>% 
                  select(id, Profile_Term = term), 
@@ -108,7 +108,7 @@ grade_distribution <- function(course_instances) {
   # TODO: one of these days we need to go through and make naming consistent, i.e. name_case or camelCase
   groupingVar <- attr(course_instances, 'vars')[2]
   
-  message("grade_dist grouping by ", groupingVar)
+  #message("grade_dist grouping by ", groupingVar)
   isGrouping <- (isTruthy(groupingVar) & groupingVar %in% names(course_instances))
   
   p <- if (length(isGrouping) & isGrouping) {

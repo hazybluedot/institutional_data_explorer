@@ -95,7 +95,7 @@ shinyServer(function(input, output, session) {
                               course_list(), 
                               valueKey = "course",
                               tokens = paste(course_list()$subject, course_list()$number, sep = ""),
-                              placeholder = "e.g. ESM 2204",
+                              placeholder = "e.g. ESM2204",
                               template = "<p class = 'repo-language'>{{subject}} {{number}}<p> 
                               <p class = 'repo-description'>{{title}}</p>"
                               )
@@ -103,7 +103,7 @@ shinyServer(function(input, output, session) {
                               course_list(),
                               valueKey = "course",
                               tokens = paste(course_list()$subject, course_list()$number, sep = ""),
-                              placeholder = "e.g. ESM 2104",
+                              placeholder = "e.g. ESM2104",
                               template = "<p class = 'repo-language'>{{subject}} {{number}}<p> 
                               <p class = 'repo-description'>{{title}}</p>")
   })
