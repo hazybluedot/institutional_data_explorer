@@ -40,8 +40,9 @@ shinyServer(function(input, output, session) {
     #message("filter stage 0 -- names: ", paste(names(course_data), collapse = ", "))
     #message("filter stage 0 -- nrows: ", nrow(course_data))
     #message("dateRange ", paste(vals$dateRange, collapse = " thru "))    
-    filtered_data <- course_data %>% 
-      filter(between(term, vals$dateRange[1], vals$dateRange[2]))
+    filtered_data <- #course_data %>% 
+      filter(course_data, credit_hours > 0 | is.na(credit_hours), 
+             between(term, vals$dateRange[1], vals$dateRange[2]))
     
     #message("filter stage 1 -- nrows: ", nrow(filtered_data))
     filter_parts <- c()
@@ -59,7 +60,7 @@ shinyServer(function(input, output, session) {
         (filter(course_data,!!!rlang::parse_exprs(
           paste(filter_parts, collapse = input$filterBoolean)
         )))$id
-      filtered_data <- filtered_data %>% filter(id %in% .IDS)
+      filtered_data <- filter(filtered_data, id %in% .IDS)
       #message("filter stage 2 -- ", paste(filter_parts, collapse = input$filterBoolean))
       #message("filter stage 2 -- nrows: ", nrow(filtered_data))
     }
@@ -81,7 +82,6 @@ shinyServer(function(input, output, session) {
   
   course_list <- reactive({
     filtered_course_data() %>%
-      filter(credit_hours > 0 | is.na(credit_hours)) %>%
       select(course, subject, number, title = grade_title) %>%
       na.omit() %>% distinct() %>% 
       mutate(Course_ID = stringr::str_replace(course, "_", " ")) %>% 
@@ -148,9 +148,11 @@ shinyServer(function(input, output, session) {
 
   courses_with_profile <- reactive({
     req(input$profile_course)
-    add_neighbor_courses(filtered_course_data() %>% 
-                           filter(course != input$profile_course),
-                         profile_course_first_instance()) %>%
+    fi <- profile_course_first_instance()
+    profile_course <- attr(fi, "profile_course")
+        add_neighbor_courses(filtered_course_data() %>% 
+                           filter(course != profile_course),
+                         fi) %>%
       left_join(student_data, by = "id")
   })
   
