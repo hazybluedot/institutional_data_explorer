@@ -24,17 +24,16 @@ gradeDistribution <-
     
     course_first_instance <- reactive({
       req(course_data())
-      #message("GradeDist names(course_data): ", paste(names(course_data()), collapse = ", "))
+      message("GradeDist names(course_data): ", paste(names(first_instance(course_data())), collapse = ", "))
       data <-
-        left_join(course_data(),
-                  first_instance(course_data()),
-                  by = "IDS") %>% filter(Banner_Term == First_Taken) %>%
-        mutate(Grade = collapse_letter_grade(Grade_Final_Grade))
+        first_instance(course_data()) %>%
+        filter(final_grade %in% c("A", "B", "C", "D", "F", "W", "T")) %>%
+        mutate(grade = collapse_letter_grade(final_grade))
       
       groupVar <- groupBy()
       if (groupVar == "group") {
         if (is.reactive(grouping_table)) {
-          data <- left_join(data, grouping_table(), by = "IDS")
+          data <- left_join(data, grouping_table(), by = "id")
         }
       }
       
@@ -66,16 +65,19 @@ gradeDistribution <-
     })
     
     output$GradeDist <- renderPlot({
-      grouping_vars <- c("Grade")
+      grouping_vars <- c("grade")
       if (groupBy() != "none" & groupBy() %in% names(course_first_instance())) {
         grouping_vars <- c(grouping_vars, groupBy())
       }
+      
+      message("using grouping variable ", groupBy(), " and grouping data by c(", paste(grouping_vars, collapse = ", "), ").")
       grouped_data <- course_first_instance() %>% group_by_at(grouping_vars)
       
+      message("group_sizes: ", paste(attr(grouped_data, 'group_sizes'), collapse = ", "))
       # dplyr conveniently calculates group sizes as part of group_by, and adds
       # this information as an attribute to the data frame.
-      shiny::validate(need(min(attr(grouped_data, 'group_sizes')) >= 10, 
-                           "Smallest group size is less than 10. Increase the filter scope to view the grade distribution."))
+      shiny::validate(need(min(attr(grouped_data, 'group_sizes')) >= params$min_bin_size,
+                          paste0("Smallest group size is less than ", params$min_bin_size, ". Increase the filter scope to view the grade distribution.")))
       # TODO: we should move '10' into a config file to avoid magic numbers sprinkled around the codebase
       grade_distribution(grouped_data)
     })
