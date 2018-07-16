@@ -150,8 +150,8 @@ shinyServer(function(input, output, session) {
     req(input$profile_course)
     fi <- profile_course_first_instance()
     profile_course <- attr(fi, "profile_course")
-        add_neighbor_courses(filtered_course_data() %>% 
-                           filter(course != profile_course),
+    add_neighbor_courses(filtered_course_data() %>% 
+                         filter(course != profile_course),
                          fi) %>%
       left_join(student_data, by = "id")
   })
