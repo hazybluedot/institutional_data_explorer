@@ -89,8 +89,8 @@ shinyServer(function(input, output, session) {
   })
   
   observe({
-    message("filtered_course_data has ", nrow(filtered_course_data()), " rows.")
-    message("course_list has ", nrow(course_list()), " rows.")
+    #message("filtered_course_data has ", nrow(filtered_course_data()), " rows.")
+    #message("course_list has ", nrow(course_list()), " rows.")
     updateTextInput.typeahead(session, "profile_course", 
                               course_list(), 
                               valueKey = "course",
@@ -143,7 +143,7 @@ shinyServer(function(input, output, session) {
       mutate(group = if_else(id %in% .IDS,
                              paste0("Took ", vals$grouping_course, " before"),
                              paste0("Did not take ", vals$grouping_course, " before"))) %>%
-      select(IDS, group)
+      select(id, group)
   })
 
   courses_with_profile <- reactive({
