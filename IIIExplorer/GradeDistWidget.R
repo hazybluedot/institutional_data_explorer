@@ -24,11 +24,13 @@ gradeDistribution <-
     
     course_first_instance <- reactive({
       req(course_data())
-      message("GradeDist names(course_data): ", paste(names(first_instance(course_data())), collapse = ", "))
+      #message("GradeDist names(course_data): ", paste(names(first_instance(course_data())), collapse = ", "))
       data <-
         first_instance(course_data()) %>%
-        filter(final_grade %in% c("A", "B", "C", "D", "F", "W", "T")) %>%
-        mutate(grade = collapse_letter_grade(final_grade))
+        #course_data() %>%
+        mutate(grade = collapse_letter_grade(final_grade)) %>%
+        filter(grade %in% c("A", "B", "C", "D", "F", "W", "T"))
+        
       
       groupVar <- groupBy()
       if (groupVar == "group") {
