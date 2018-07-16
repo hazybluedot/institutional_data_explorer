@@ -125,13 +125,14 @@ wellPanel(
   sliderInput(
     "termRange",
     "Date Range",
-    min = currentYear - 1,
-    max = currentYear,
-    value = c(currentYear - 1, currentYear),
+    min = NA,
+    max = NA,
+    value = c(NA, NA),
     dragRange = TRUE,
     sep = "",
     step = 0.5
   ),
+  actionButton("applyFilter", "Apply Filter"),
   div(
     "Filtered dataset contains ",
     br(),
