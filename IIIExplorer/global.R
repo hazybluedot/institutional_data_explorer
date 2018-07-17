@@ -5,58 +5,13 @@ library(deepr)
 
 enableBookmarking(store = "server")
 
-local_dir <- "~/ENGE/workspace/III_Dashboard/IIIExplorer"
-
-if (dir.exists(local_dir)) {
- setwd(local_dir)
-} else {
- setwd("/root/IIIExplorer")
-}
-
-course_fname <- paste0(getwd(), "/../data/course_data.rda")
-student_fname <- paste0(getwd(), "/../data/student_data.rda")
-degree_fname <- paste0(getwd(), "/../data/degrees_dummyIDs.rda")
+source("init.R", local = TRUE)
 
 params <- list(ncourses = 5, 
                ndegrees = 8,
                min_bin_size = 1)
 
 source("utils.R", local = TRUE)
-
-load_student_data <- function() {
-  data(student_data)
-  student_data %>% 
-    mutate_at(c("gender", "first_generation", "urm", "tuition", "first_time_transfer"), as.factor) %>%
-    dplyr::rename(Tuition = tuition,
-                          URM = urm,
-                          Gender = gender,
-                          Tuition = tuition,
-                         `First Time Freshman` = first_time_freshman,
-                         `First Generation` = first_generation,
-                         `First Time Transfer` = first_time_transfer,
-                         `Math Readiness` = math_readiness) %>%
-    filter(Gender %in% c("Male", "Female"))
-}
-
-load_course_data <- function() {
-  data("merged_course_data")
-  #data("transfer_courses")
-  #data("orphan_courses")
-  
-  stop_for_problems(course_data)
-  
-  merged_course_data %>% 
-    unite(course, subject, number, remove = FALSE) %>%
-    mutate(final_grade = parse_factor(final_grade, grade_levels))# %>%
-    # bind_rows(transfer_courses %>% rename(subject = grade_subject, 
-    #                                       number = grade_number)),
-    #           orphen_courses %>% rename(grade_title = title, grade_crn = crn))
-}
-
-load_degree_data <- function(fname = degree_fname) {
-  data("degree_data")
-  degree_data
-}
 
 #add_neighbor_courses <- (function(course_data) {
 add_neighbor_courses <- function(course_data, profile_course_first_instance) {
@@ -67,8 +22,7 @@ add_neighbor_courses <- function(course_data, profile_course_first_instance) {
                profile_course_first_instance %>% 
                  select(id, Profile_Term = term), 
                by = "id") %>% 
-      filter(!is.na(credit_hours), credit_hours > 0,
-             id %in% profile_course_first_instance$id) %>% # Filter out lab courses, which have credit hours set to 0
+      filter(id %in% profile_course_first_instance$id) %>% # Filter out lab courses, which have credit hours set to 0
       mutate(when = case_when(term < Profile_Term ~ "before",
                               term == Profile_Term ~ "with",
                               term > Profile_Term ~ "after")) %>%

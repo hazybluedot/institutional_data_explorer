@@ -72,10 +72,10 @@ gradeDistribution <-
         grouping_vars <- c(grouping_vars, groupBy())
       }
       
-      message("using grouping variable ", groupBy(), " and grouping data by c(", paste(grouping_vars, collapse = ", "), ").")
+      #message("using grouping variable ", groupBy(), " and grouping data by c(", paste(grouping_vars, collapse = ", "), ").")
       grouped_data <- course_first_instance() %>% group_by_at(grouping_vars)
       
-      message("group_sizes: ", paste(attr(grouped_data, 'group_sizes'), collapse = ", "))
+      #message("group_sizes: ", paste(attr(grouped_data, 'group_sizes'), collapse = ", "))
       # dplyr conveniently calculates group sizes as part of group_by, and adds
       # this information as an attribute to the data frame.
       shiny::validate(need(min(attr(grouped_data, 'group_sizes')) >= params$min_bin_size,

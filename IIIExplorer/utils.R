@@ -80,7 +80,7 @@ first_instance <- function(course_instances, old.method = FALSE) {
   }
 
   #message("first_instance: attributes(course_instances): ", paste(names(attributes(course_instances)), collapse = ", "))
-  message("first_instance: using old method. names: ", paste(names(course_instances), collapse = ", "))
+  message("first_instance: using old method.") # names: ", paste(names(course_instances), collapse = ", "))
   fi <- course_instances %>% 
     group_by(id) %>% 
     arrange(term) %>% 

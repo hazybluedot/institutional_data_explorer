@@ -1,8 +1,11 @@
 #library(rlang)
 
-course_data <- load_course_data()
-student_data <- load_student_data()
-degree_data <- load_degree_data()
+course_data <- read_csv(file_names$course_data, 
+                        col_types = col_types$course_data, 
+                        progress = FALSE)
+student_data <- read_csv(file_names$student_data, 
+                         col_types = col_types$student_data)
+degree_data <- read_csv(file_names$degree_data)
 
 resetDateSlider <- function(session) {
   date_range <- range(as.numeric(course_data$term) %/% 100)
@@ -52,8 +55,7 @@ shinyServer(function(input, output, session) {
     req(as.logical(all(input$filterBoolean %in% c("&", "|"))), vals$dateRange)
     #message("filter stage 0 -- names: ", paste(names(course_data), collapse = ", "))
     #message("filter stage 0 -- nrows: ", nrow(course_data))
-    filtered_data <- filter(course_data, credit_hours > 0 | is.na(credit_hours), 
-             between(term, vals$dateRange[1], vals$dateRange[2]))
+    filtered_data <- filter(course_data, between(term, vals$dateRange[1], vals$dateRange[2]))
     
     #message("filter stage 1 -- nrows: ", nrow(filtered_data))
     filter_parts <- c()
@@ -183,8 +185,8 @@ shinyServer(function(input, output, session) {
     
     vals$majorFilter = character(0)
     vals$collegeFilter = character(0)
-    resetDateSlider(session)
-    vals$applyFilter <- "reset_button"
+    vals$dateRange <- numeric_to_term(resetDateSlider(session))
+    vals$applyFilter <- vals$applyFilter + 1
   })
 
   output$nCourses <- renderText(nrow(filtered_course_data()))
