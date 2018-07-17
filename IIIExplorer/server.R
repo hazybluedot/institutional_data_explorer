@@ -1,32 +1,46 @@
 #library(rlang)
 
-course_data <- load_course_data()
-student_data <- load_student_data()
-degree_data <- load_degree_data()
+course_data <- read_csv(file_names$course_data, 
+                        col_types = col_types$course_data, 
+                        progress = FALSE)
+student_data <- read_csv(file_names$student_data, 
+                         col_types = col_types$student_data)
+degree_data <- read_csv(file_names$degree_data)
+
+resetDateSlider <- function(session) {
+  date_range <- range(as.numeric(course_data$term) %/% 100)
+  message("updateSliderInput: ", paste(date_range, collapse = " thru "))
+  updateSliderInput(session, "termRange", 
+                    min = date_range[1], 
+                    max = date_range[2], 
+                    value = c(date_range[1], date_range[2]))
+  return(date_range)
+}
 
 shinyServer(function(input, output, session) {
-  vals <- reactiveValues(dateRange = c(),
+  vals <- reactiveValues(dateRange = c(NULL, NULL),
                          collegeFilter = NULL,
                          majorFilter = NULL,
                          grouping_course = NULL,
-                         valid = FALSE)
+                         valid = FALSE,
+                         applyFilter = NULL,
+                         filterEnable = FALSE)
   
-  resetDateSlider <- function(session) {
-    date_range <- range(as.numeric(course_data$term) %/% 100)
-    updateSliderInput(session, "termRange", 
-                      min = date_range[1], 
-                      max = date_range[2], 
-                      value = c(date_range[1], date_range[2]))
-    return(date_range)
-  }
   
   observe({
     ## Set min and max date based on data
-    resetDateSlider(session)
+    termRange <- resetDateSlider(session)
+    vals$dateRange <- numeric_to_term(termRange)
   })
   
-  observeEvent(input$termRange, {
-    vals$dateRange <- numeric_to_term(input$termRange)
+  observe({
+    req(!is.null(input$termRange), length(input$termRange == 2), all(!is.na(input$termRange)))
+    if (length(req(input$termRange)) == 2 & all(!is.na(input$termRange))) {
+      vals$dateRange <- numeric_to_term(input$termRange)
+      if (is.null(vals$applyFilter)) {
+        vals$applyFilter <- 0
+      } 
+    }
   })
 
   # reactiveValues is used here because the updateSelect2Input, used for reset
@@ -34,15 +48,14 @@ shinyServer(function(input, output, session) {
   # has changed.
   observe({ vals$collegeFilter <- input$collegeFilter })
   observe({ vals$majorFilter <- input$majorFilter })
-
-  filtered_course_data <- reactive({
-    req(as.logical(all(input$filterBoolean %in% c("&", "|"))))
+  observeEvent(input$applyFilter, { vals$applyFilter <- vals$applyFilter + 1 })
+  
+  filtered_course_data <- eventReactive(vals$applyFilter, {
+    message("filtered_course_data triggered by ", vals$applyFilter)
+    req(as.logical(all(input$filterBoolean %in% c("&", "|"))), vals$dateRange)
     #message("filter stage 0 -- names: ", paste(names(course_data), collapse = ", "))
     #message("filter stage 0 -- nrows: ", nrow(course_data))
-    #message("dateRange ", paste(vals$dateRange, collapse = " thru "))    
-    filtered_data <- #course_data %>% 
-      filter(course_data, credit_hours > 0 | is.na(credit_hours), 
-             between(term, vals$dateRange[1], vals$dateRange[2]))
+    filtered_data <- filter(course_data, between(term, vals$dateRange[1], vals$dateRange[2]))
     
     #message("filter stage 1 -- nrows: ", nrow(filtered_data))
     filter_parts <- c()
@@ -150,8 +163,8 @@ shinyServer(function(input, output, session) {
     req(input$profile_course)
     fi <- profile_course_first_instance()
     profile_course <- attr(fi, "profile_course")
-        add_neighbor_courses(filtered_course_data() %>% 
-                           filter(course != profile_course),
+    add_neighbor_courses(filtered_course_data() %>% 
+                         filter(course != profile_course),
                          fi) %>%
       left_join(student_data, by = "id")
   })
@@ -163,6 +176,8 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$resetInputs, {
+    req(all(!is.na(input$termRange)) & length(input$termRange) == 2)
+    message("resetting DateSlider via input$resetInputs (", input$resetInputs, ")")
     updateSelect2Input(session, "majorFilter", "is this uses?", choices = NULL)
     updateSelect2Input(session, "collegeFilter", "is this uses?", choices = NULL)
     updateSelectInput(session, "groupBy", selected = "none")
@@ -170,7 +185,8 @@ shinyServer(function(input, output, session) {
     
     vals$majorFilter = character(0)
     vals$collegeFilter = character(0)
-    resetDateSlider(session)
+    vals$dateRange <- numeric_to_term(resetDateSlider(session))
+    vals$applyFilter <- vals$applyFilter + 1
   })
 
   output$nCourses <- renderText(nrow(filtered_course_data()))

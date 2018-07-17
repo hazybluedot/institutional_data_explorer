@@ -32,9 +32,9 @@ RUN R -e "devtools::install_github('AnalytixWare/ShinySky'); devtools::install_g
 # copy the app to the image
 RUN mkdir /root/deepr /root/data /root/IIIExplorer
 COPY deepr /root/deepr
-COPY data /root/data
+# COPY data /root/data
 
-RUN R -e "devtools::install('/root/deepr')"
+RUN R -e "devtools::install('/root/deepr'); source(/root/IIIExplorer/init.R); init_data()"
 
 COPY IIIExplorer /root/IIIExplorer
 

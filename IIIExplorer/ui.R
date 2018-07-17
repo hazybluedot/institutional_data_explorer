@@ -2,11 +2,13 @@ library(shiny)
 library(shinysky)
 library(shinythemes)
 
-load("../data/college_majors.rda")
+source("init.R", local = TRUE)
+
+college_majors <- read.csv(file_names$college_majors, stringsAsFactors = FALSE)
 college_choices <-
-  (college_majors %>% distinct(College_desc))$College_desc
+  (college_majors %>% distinct(college_desc))$college_desc
 major_choices <-
-  (college_majors %>% arrange(Major) %>% distinct(Major))$Major
+  (college_majors %>% arrange(major) %>% distinct(major))$major
 
 JScode <-
   "$(function() {
@@ -125,13 +127,14 @@ wellPanel(
   sliderInput(
     "termRange",
     "Date Range",
-    min = currentYear - 1,
-    max = currentYear,
-    value = c(currentYear - 1, currentYear),
+    min = NA,
+    max = NA,
+    value = c(NA, NA),
     dragRange = TRUE,
     sep = "",
     step = 0.5
   ),
+  actionButton("applyFilter", "Apply Filter"),
   div(
     "Filtered dataset contains ",
     br(),
