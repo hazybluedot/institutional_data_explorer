@@ -1,4 +1,5 @@
 library(deepr)
+library(tidyverse)
 
 local_dir <- "~/ENGE/workspace/III_Dashboard/IIIExplorer"
 
@@ -7,6 +8,8 @@ if (dir.exists(local_dir)) {
 } else {
   setwd("/root/IIIExplorer")
 }
+
+source("consts.R", local = TRUE)
 
 col_term <- function() {
   function(x) {

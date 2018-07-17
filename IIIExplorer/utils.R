@@ -1,6 +1,8 @@
 library(data.table)
 library(racadia)
 
+source("consts.R", local = TRUE)
+
 firstna <- function(x) {
   first(x[!is.na(x)])
 }
@@ -13,14 +15,6 @@ numeric_to_term <- function(x) {
                      TRUE ~ as.character(NA))
   as_term(as.integer(paste0(year, month)))
 }
-
-grade_levels <- c("A", "A-",
-                  "B+", "B", "B-",
-                  "C+", "C", "C-",
-                  "D+", "D", "D-",
-                  "T",
-                  "F", "NR", "NG", "F *", "W", "WG", 
-                  "I", "P", "RP", "AUD", "X", "EQ", "S", "NS")
 
 convert_grades_numeric <- function(x, Tvalue = 2.0) {
   A <- factor(x, levels = grade_levels)
@@ -44,15 +38,6 @@ collapse_letter_grade <- function(x) {
                       WG = "WG"), levels = c("A", "B", "C", "D", "F", "T", "W","WG"))
   #, exclude = c("AUD", "EQ", "I", "NS", "P", "PC", "RP", "S", "X"))
 }
-
-# Limit to cases where a final grade is assigned
-valid_grades <- c("A", "A-", 
-                  "B+", "B", "B-", 
-                  "C+", "C", "C-", 
-                  "D+", "D", "D-", 
-                  "F", "F *",
-                  "NR", "NG",
-                  "W", "T")
 
 course_instances <- function(.data, profile_course) {
   .data <- as.data.table(.data)
