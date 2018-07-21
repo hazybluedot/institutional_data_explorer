@@ -1,0 +1,65 @@
+{
+  "input": {
+    "applyFilter": 1,
+    "collegeFilter": "Engineering",
+    "compareCourse": "",
+    "filterBoolean": "&",
+    "groupBy": "none",
+    "hasDegree": false,
+    "majorFilter": null,
+    "profile": "grades",
+    "profile_course": "",
+    "resetInputs": 1,
+    "s2id_autogen1": "",
+    "s2id_autogen2": "",
+    "s2id_collegeFilter": "Engineering",
+    "s2id_majorFilter": null,
+    "termRange": [
+      2009,
+      2017
+    ]
+  },
+  "output": {
+    "CoursesBefore-CourseTable": [
+      "",
+      "NULL",
+      "c(\"shiny.silent.error\", \"validation\")"
+    ],
+    "CoursesBefore-GradeDist-GradeDist": {
+      "message": "",
+      "call": "NULL",
+      "type": [
+        "shiny.silent.error",
+        "validation"
+      ]
+    },
+    "CoursesBefore-GradeDist-status": null,
+    "CourseTitle": {
+      "message": "",
+      "call": "NULL",
+      "type": [
+        "shiny.silent.error",
+        "validation"
+      ]
+    },
+    "DegreesAfter": [
+      "",
+      "NULL",
+      "c(\"shiny.silent.error\", \"validation\")"
+    ],
+    "GradeDist-GradeDist": {
+      "message": "",
+      "call": "NULL",
+      "type": [
+        "shiny.silent.error",
+        "validation"
+      ]
+    },
+    "GradeDist-status": null,
+    "nCourses": "1814252",
+    "nStudents": "43148"
+  },
+  "export": {
+
+  }
+}

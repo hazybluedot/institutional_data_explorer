@@ -20,14 +20,15 @@ RUN apt-get update && apt-get install -y \
 
 # basic shiny functionality
 
-RUN R -e "install.packages(c('shiny', 'rmarkdown'), repos='https://cloud.r-project.org/')"
+RUN R -e "install.packages(c('shiny', 'shinytest', 'rmarkdown'), repos='https://cloud.r-project.org/'); \
+shinytest::installDependencies()"
 
 # install dependencies of the III app
 RUN R -e "install.packages(c('tidyverse', 'DT', 'rms', 'shinythemes', 'devtools'), repos='https://cloud.r-project.org/')"
 #RUN R -e "install.packages('devtools', repos='https://cloud.r-project.org/')"
 
 # install more dependencies of the III app
-RUN R -e "devtools::install_github('AnalytixWare/ShinySky'); devtools::install_github('hazybluedot/racadia')"
+RUN R -e "devtools::install_github('hazybluedot/ShinySky'); devtools::install_github('hazybluedot/racadia')"
 
 # copy the app to the image
 RUN mkdir /root/deepr /root/data /root/IIIExplorer
