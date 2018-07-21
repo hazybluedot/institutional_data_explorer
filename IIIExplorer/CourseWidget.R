@@ -26,30 +26,28 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   
   selected <- reactive({ course_table()[input$CourseTable_rows_selected,]$course })
   
-  selected_course_first_instances <- reactive({
-    req(selected())  
+  courses_when <- reactive({
     profileIDS <- unique(profile_course()$id)
-    instances <- filter(course_data(), 
-                          course == selected(), 
-                          when == .when,
-                          id %in% profileIDS,
-                          !is.null(final_grade), 
-                          final_grade %in% valid_grades)
-    first_instance(instances)
+    filter(course_data(), 
+           when == .when,
+           id %in% profileIDS)
   })
   
   course_table <- reactive({
     profileIDS <- unique(profile_course()$id)
     Ntotal <- length(profileIDS)
     
-    course_data() %>%
-      filter(when == .when,
-             id %in% profileIDS) %>%
+    courses_when() %>%
       group_by(course) %>%
       dplyr::summarize(Title = dplyr::first(grade_title),
                 N = n_distinct(id),
                 pct = N / Ntotal) %>%
       arrange(-N) %>% filter(pct > 0.10)    
+  })
+  
+  selected_course_first_instances <- reactive({
+    req(selected())  
+    first_instance(course_instances(courses_when(), selected()))
   })
   
   output$CourseTable <- DT::renderDataTable({

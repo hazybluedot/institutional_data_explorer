@@ -75,3 +75,17 @@ first_instance <- function(course_instances, old.method = FALSE) {
     filter(term == First_Taken) %>%
     select(-First_Taken)
 }
+
+#add_neighbor_courses <- (function(course_data) {
+add_neighbor_courses <- function(course_data, profile_course_first_instance) {
+  left_join(course_data, 
+             profile_course_first_instance %>% 
+               select(id, Profile_Term = term), 
+             by = "id") %>% 
+  filter(id %in% profile_course_first_instance$id) %>% # Filter out lab courses, which have credit hours set to 0
+      mutate(when = case_when(term < Profile_Term ~ "before",
+                            term == Profile_Term ~ "with",
+                            term > Profile_Term ~ "after")) %>%
+    select(-Profile_Term)
+}
+

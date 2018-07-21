@@ -2,10 +2,13 @@
 
 course_data <- read_csv(file_names$course_data, 
                         col_types = col_types$course_data, 
-                        progress = FALSE)
+                        progress = FALSE) %>%
+  mutate(term = racadia::as_term(term))
 student_data <- read_csv(file_names$student_data, 
-                         col_types = col_types$student_data)
-degree_data <- read_csv(file_names$degree_data)
+                         col_types = col_types$student_data) %>%
+  mutate(first_enrolled_term = racadia::as_term(first_enrolled_term))
+degree_data <- read_csv(file_names$degree_data) %>%
+  mutate(term = racadia::as_term(term))
 
 resetDateSlider <- function(session) {
   date_range <- range(as.numeric(course_data$term) %/% 100)
@@ -130,14 +133,11 @@ shinyServer(function(input, output, session) {
                       grouping_vars))
     #updateCheckboxGroupInput(session, "demographicFilter", choices = c("All", grouping_vars))
   })
-
-  profile_course_instances <- reactive({
-    req(input$profile_course, filtered_course_data())
-    course_instances(filtered_course_data(), input$profile_course)
-  })
   
   profile_course_first_instance <- reactive({ 
-    fi <- first_instance(profile_course_instances()) %>%
+    req(input$profile_course, filtered_course_data())
+    ci <- course_instances(filtered_course_data(), input$profile_course)
+    fi <- first_instance(ci) %>%
       left_join(student_data, by = "id")
     attr(fi, "profile_course") <- input$profile_course
     attr(fi, "distinct_IDS") <- unique(fi$id)
@@ -152,7 +152,7 @@ shinyServer(function(input, output, session) {
       filter(course == vals$grouping_course, when == "before")
     .IDS <- took_selected_before$id
     
-    profile_course_instances() %>%
+    profile_course_first_instance() %>%
       mutate(group = if_else(id %in% .IDS,
                              paste0("Took ", vals$grouping_course, " before"),
                              paste0("Did not take ", vals$grouping_course, " before"))) %>%
