@@ -51,7 +51,7 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
   })
   
   output$CourseTable <- DT::renderDataTable({
-    datatable(
+    DT::datatable(
       course_table(),
       options = list(
         pageLength = 5,
@@ -60,7 +60,7 @@ courseWidget <- function(input, output, session, course_data, .when, profile_cou
       ),
       rownames = FALSE,
       selection = list(mode = "single")
-    ) %>% formatPercentage('pct', 2)
+    ) %>% DT::formatPercentage('pct', 2)
   },
   server = FALSE)
 

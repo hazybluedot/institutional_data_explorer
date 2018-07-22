@@ -1,5 +1,6 @@
 library(data.table)
 library(racadia)
+library(forcats)
 
 source("consts.R", local = TRUE)
 

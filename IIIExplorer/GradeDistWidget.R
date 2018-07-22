@@ -1,6 +1,7 @@
 # Grade Distribution Widget
 
 library(shiny)
+library(ggplot2)
 
 grade_distribution <- function(course_instances) {
   # this is a somewhat ugly geom_blank hack to force enough extra space at the top of the plot to hold the 
