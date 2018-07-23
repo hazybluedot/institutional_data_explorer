@@ -14,6 +14,11 @@ Version: 0.4
 Hash: a6e844446350a7128c734516fa8215e3
 Requires: magrittr, htmltools, htmlwidgets, crosstalk
 
+Package: MASS
+Source: CRAN
+Version: 7.3-50
+Hash: e8001243da35880bd81391d80eb4eeae
+
 Package: R6
 Source: CRAN
 Version: 2.2.2
@@ -101,6 +106,10 @@ Hash: 8c1063395335450e2fdb82fd9c985b6c
 Requires: BH, R6, Rcpp, assertthat, glue, magrittr, pkgconfig, plogr,
     rlang, bindrcpp, tibble, tidyselect
 
+Package: fansi
+Source: CRAN
+Version: 0.2.3
+
 Package: forcats
 Source: CRAN
 Version: 0.3.0
@@ -111,7 +120,8 @@ Package: ggplot2
 Source: CRAN
 Version: 2.2.1
 Hash: 46e5cb78836848aa44655e577433f54b
-Requires: digest, gtable, lazyeval, plyr, scales, reshape2, tibble
+Requires: digest, gtable, lazyeval, rlang, viridisLite, plyr, scales,
+    reshape2, tibble, MASS, mgcv, withr
 
 Package: glue
 Source: CRAN
@@ -173,6 +183,11 @@ Source: CRAN
 Version: 1.5
 Hash: bdc4d48c3135e8f3b399536ddf160df4
 
+Package: mgcv
+Source: CRAN
+Version: 1.8-24
+Hash: a56dfc15ea064de70627f483af3bfa6f
+
 Package: microbenchmark
 Source: CRAN
 Version: 1.4-4
@@ -198,7 +213,7 @@ Package: pillar
 Source: CRAN
 Version: 1.2.2
 Hash: 9c4da206e8c0b21a14667c1baf69ee52
-Requires: crayon, rlang, utf8, cli
+Requires: crayon, rlang, utf8, cli, fansi
 
 Package: pkgconfig
 Source: CRAN
@@ -266,8 +281,8 @@ Package: shiny
 Source: CRAN
 Version: 1.1.0
 Hash: ab653b45dba6dc82eef68fb1e18a3b1a
-Requires: R6, crayon, digest, jsonlite, mime, rlang, sourcetools,
-    xtable, htmltools, later, promises, httpuv
+Requires: R6, digest, jsonlite, mime, sourcetools, xtable, htmltools,
+    httpuv
 
 Package: shinysky
 Source: github
@@ -329,6 +344,11 @@ Package: viridisLite
 Source: CRAN
 Version: 0.3.0
 Hash: 78bb072c4f9e729a283d4c40ec93f9c6
+
+Package: withr
+Source: CRAN
+Version: 2.1.2
+Hash: d534108bcd5f34ec73e9eb523751ba20
 
 Package: xtable
 Source: CRAN

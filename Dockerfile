@@ -17,7 +17,8 @@ RUN apt-get update && apt-get install -y -t unstable \
     pandoc-citeproc \
     libcurl4-gnutls-dev \
     libcairo2-dev/unstable \
-    libxt-dev && \
+    libxt-dev \
+    libssl-dev && \
     wget --no-verbose https://download3.rstudio.org/ubuntu-14.04/x86_64/VERSION -O "version.txt" && \
     VERSION=$(cat version.txt)  && \
     wget --no-verbose "https://download3.rstudio.org/ubuntu-14.04/x86_64/shiny-server-$VERSION-amd64.deb" -O ss-latest.deb && \
@@ -26,8 +27,8 @@ RUN apt-get update && apt-get install -y -t unstable \
 R -e "install.packages(c('shiny', 'shinytest', 'packrat', 'rmarkdown'), repos='https://cran.rstudio.com/')" && \
     rm -rf /var/lib/apt/lists/*
 
-# copy the app to the image
-RUN mkdir /root/local/deepr \
+#  copy the app to the image
+RUN mkdir -p /root/local/deepr \
   /root/packrat_cache \
   /root/data /root/IIIExplorer \
   /root/IIIExplorer/packrat
@@ -35,21 +36,19 @@ RUN mkdir /root/local/deepr \
 COPY IIIExplorer/packrat/packrat.lock /root/IIIExplorer/packrat
 COPY IIIExplorer/packrat/packrat.opts /root/IIIExplorer/packrat
 
-COPY packrat_cach /root/packrat_cache
+COPY packrat_cache /root/packrat_cache
 ENV R_PACKRAT_CACHE_DIR /root/packrat_cache
 
-
-COPY deepr /root/local/deepr
+COPY local/deepr /root/local/deepr
 # COPY data /root/data
 
-RUN R -e "devtools::install('/root/deepr')"
+# RUN R -e "devtools::install('/root/deepr')"
 
 COPY IIIExplorer /root/IIIExplorer
 
+RUN R -e "setwd('/root/IIIExplorer'); packrat::restore()"
 
-RUN R -e "packrat::packify(); packrat::restore()"
-
-RUN R -e "source('/root/IIIExplorer/init.R'); init_data()"
+#RUN R -e "source('/root/IIIExplorer/init.R'); init_data()"
 
 COPY Rprofile.site /usr/lib/R/etc/
 
