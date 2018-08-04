@@ -10,24 +10,6 @@ college_choices <-
 major_choices <-
   (college_majors %>% arrange(major) %>% distinct(major))$major
 
-JScode <-
-  "$(function() {
-setTimeout(function(){
-$('#termRange').data('ionRangeSlider').update({
-'prettify_enabled': true,
-'prettify': function(num) {
-var remainder = (num % 1).toFixed(1);
-var year = Math.floor(num);
-if (remainder == 0) {
-var term = 'Spring';
-} else {
-var term = 'Fall';
-}
-return (term+' '+year);
-}
-})
-}, 5)})"
-
 currentYear <- as.numeric(format(Sys.Date(), "%Y"))
 
 #shinyUI(
@@ -37,24 +19,8 @@ function(request) {
     theme = shinytheme("united"),
     #tabPanel("Course",
     tags$head(
-      tags$script(HTML(JScode)),
-      tags$style(
-        type = "text/css",
-        "
-        #loadmessage {
-        position: fixed;
-        top: 0px;
-        left: 0px;
-        width: 100%;
-        padding: 5px 0px 5px 0px;
-        text-align: center;
-        font-weight: bold;
-        font-size: 100%;
-        color: #000000;
-        background-color: #91bfdb;
-        z-index: 105;
-        }
-        ")),
+      tags$link(rel = "styelsheet", type = "text/css", href = "styleshee.css"),
+      tags$script(src = "prettyterm.js", type = "text/javascript")),
     sidebarLayout(
       sidebarPanel(
         conditionalPanel(condition = "$('html').hasClass('shiny-busy')",
@@ -106,12 +72,11 @@ wellPanel(
   #                              choices = c("All"), selected = c("All"))),
   #actionButton("showFilter", "Filter by ..."),
   select2Input(
-    "collegeFilter",
-    "College",
-    choices = college_choices,
-    selected = c("Engineering"),
-    multiple = TRUE
-  ),
+             "collegeFilter",
+             "College",
+             choices = college_choices,
+             selected = c("Engineering"),
+             multiple = TRUE),
   helpText("Leave blank for all. Multiple selections are additive, i.e. logical OR"),
   selectInput("filterBoolean", NULL, choices = c(AND = "&", OR = "|"), selected = "AND", width = "5em"),
   helpText("combine college and major filter with either logical AND or OR."),
@@ -119,8 +84,7 @@ wellPanel(
     "majorFilter",
     "Major",
     choices = major_choices,
-    multiple = TRUE
-  ),
+    multiple = TRUE),
   helpText("Leave blank for all. Multiple selections are additive, i.e. logical OR"),
   checkboxInput("hasDegree", "Has Degree"),
   helpText("When checked only students who earned a degree in one of the filtered colleges or majors will be included."),

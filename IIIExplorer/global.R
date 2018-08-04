@@ -1,8 +1,6 @@
 library(shiny)
 library(DT)
 library(tidyverse)
-library(deepr)
-library(scales)
 
 enableBookmarking(store = "server")
 params <- list(ncourses = 5, 

@@ -1,5 +1,6 @@
-library(deepr)
-library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(readr)
 
 local_dir <- "~/ENGE/workspace/III_Dashboard/IIIExplorer"
 
@@ -23,6 +24,7 @@ parse_term <- function(x, na = c("", "NA"), locale = default_locale(), trim_ws =
 }
 
 file_names <- list(student_data = "../data/student_data.csv",
+                   student_records = "../data/student_records.csv",
                   course_data = "../data/course_data.csv",
                   degree_data = "../data/degree_data.csv",
                   college_majors = "../data/college_majors.csv")
@@ -34,6 +36,7 @@ col_types <- list(student_data = readr::cols_only(id = col_integer(),
                                               URM = readr::col_factor(c("Y", "N")),
                                               `First Generation` = readr::col_factor(c("Y", "N")),
                                               `First Time Freshman` = readr::col_factor(c("Y", "N")),
+                                              `First Time Transfer` = readr::col_factor(c("Y", "N")),
                                               `Tuition` = readr::col_factor(c("In-State", "Out-of-State")),
                                               `Math Readiness` = readr::col_factor(c("Ready", "Not Ready", "Not Evaluated"))),
                   course_data = readr::cols_only(id = col_integer(),
@@ -52,37 +55,47 @@ col_types <- list(student_data = readr::cols_only(id = col_integer(),
 
 load_student_data <- function() {
   message("loading student_data")
-  data(student_data)
+  data(student_data, package = "vtir")
+  data(student_records, package = "vtir")
+  
+  transfer_students <- student_records %>%
+    filter(first_time_transfer == "Y") %>%
+    distinct(id)
+  
   student_data <- student_data %>% 
     #mutate_at(c("gender", "first_generation", "urm", "tuition", "first_time_transfer"), as.factor) %>%
     dplyr::rename(Tuition = tuition,
                   URM = urm,
                   Gender = gender,
                   Tuition = tuition,
-                  `First Time Freshman` = first_time_freshman,
                   `First Generation` = first_generation,
-                  `First Time Transfer` = first_time_transfer,
                   `Math Readiness` = math_readiness) %>%
-    filter(Gender %in% c("Male", "Female"))
+    filter(Gender %in% c("Male", "Female")) %>%
+    mutate(`First Time Transfer` = if_else(id %in% transfer_students$id, "Y", "N"))
   message("writing student_data")
   readr::write_csv(student_data, file_names$student_data)
 }
 
 load_course_data <- function() {
   message("loading merged_course_data")
-  data("merged_course_data")
-  #data("transfer_courses")
+  data("merged_course_data", package = "vtir")
+  data("student_records", package = "vtir")
+    #data("transfer_courses")
   #data("orphan_courses")
   
-  stop_for_problems(course_data)
+  stop_for_problems(merged_course_data)
   
-  course_data <- merged_course_data %>% 
+  course_data <- merged_course_data %>%
+    #select(-college_code, -college_desc, -major) %>%
     mutate(final_grade = parse_factor(final_grade, grade_levels),
            subject = if_else(is.na(subject), registered_subject, subject),
            number = if_else(is.na(number), registered_number, number)) %>%
     filter(credit_hours > 0 | is.na(credit_hours),
            !is.na(subject), !is.na(number)) %>%
-    unite(course, subject, number, remove = FALSE)
+    unite(course, subject, number, remove = FALSE) %>%
+    left_join(student_records %>% 
+                select(id, term, college_code, college_desc, major), by = c("id", "term")) %>%
+    distinct()
 # %>%
   # bind_rows(transfer_courses %>% rename(subject = grade_subject, 
   #                                       number = grade_number)),
@@ -90,7 +103,7 @@ load_course_data <- function() {
   message("writing course_data.csv")
   readr::write_csv(course_data, file_names$course_data)
   
-  college_majors <- select(merged_course_data, college_code, college_desc, major) %>% distinct()
+  college_majors <- select(student_records, college_code, college_desc, major) %>% distinct()
   
   message("writing college_majors.csv")
   readr::write_csv(college_majors, file_names$college_majors)
@@ -98,13 +111,17 @@ load_course_data <- function() {
 
 load_degree_data <- function(fname = degree_fname) {
   message("loading degree_data")
-  data("degree_data")
+  data("degree_data", package = "vtir")
   #degree_data
   message("writing degree_data.csv")
   readr::write_csv(degree_data, file_names$degree_data)
 }
 
 init_data <- function() {
+  rm(list = ls())
+  unloadNamespace("deepr")
+  library(vtir)
+  
   load_course_data()
   load_student_data()
   load_degree_data()

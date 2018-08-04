@@ -1,18 +1,21 @@
 #library(rlang)
+library(deepr) # course_instances, first_instances, add_neighbor_courses
 
 course_data <- read_csv(file_names$course_data, 
                         col_types = col_types$course_data, 
                         progress = FALSE) %>%
   mutate(term = racadia::as_term(term))
+
 student_data <- read_csv(file_names$student_data, 
                          col_types = col_types$student_data) %>%
   mutate(first_enrolled_term = racadia::as_term(first_enrolled_term))
+
 degree_data <- read_csv(file_names$degree_data) %>%
   mutate(term = racadia::as_term(term))
 
 resetDateSlider <- function(session) {
   date_range <- range(as.numeric(course_data$term) %/% 100)
-  message("updateSliderInput: ", paste(date_range, collapse = " thru "))
+  #message("updateSliderInput: ", paste(date_range, collapse = " thru "))
   updateSliderInput(session, "termRange", 
                     min = date_range[1], 
                     max = date_range[2], 
@@ -55,30 +58,37 @@ shinyServer(function(input, output, session) {
   
   filtered_course_data <- eventReactive(vals$applyFilter, {
     message("filtered_course_data triggered by ", vals$applyFilter)
-    req(as.logical(all(input$filterBoolean %in% c("&", "|"))), vals$dateRange)
+    req(as.logical(all(input$filterBoolean %in% c("&", "|"))), 
+        vals$dateRange)
     #message("filter stage 0 -- names: ", paste(names(course_data), collapse = ", "))
     #message("filter stage 0 -- nrows: ", nrow(course_data))
     filtered_data <- filter(course_data, between(term, vals$dateRange[1], vals$dateRange[2]))
-    
+    filteredIDs <- filtered_data %>% distinct(id)
     #message("filter stage 1 -- nrows: ", nrow(filtered_data))
+    
     filter_parts <- c()
     if (isTruthy(vals$collegeFilter)) {
-      filter_parts <-
-        c(filter_parts, "college_desc %in% vals$collegeFilter")
+      filter_parts <-  c(filter_parts, "(college_desc %in% vals$collegeFilter)")
     }
     
     if (isTruthy(vals$majorFilter)) {
-      filter_parts <- c(filter_parts, "major %in% vals$majorFilter")
+      filter_parts <- c(filter_parts, "(major %in% vals$majorFilter)")
     }
     
     if (length(filter_parts) > 0) {
+      #message("filter stage 2 -- ", paste(filter_parts, collapse = input$filterBoolean))
+      #message("names(course_data): ", paste(names(course_data), collapse = ", "))
       .IDS <-
         (filter(course_data,!!!rlang::parse_exprs(
           paste(filter_parts, collapse = input$filterBoolean)
         )))$id
       filtered_data <- filter(filtered_data, id %in% .IDS)
-      #message("filter stage 2 -- ", paste(filter_parts, collapse = input$filterBoolean))
       #message("filter stage 2 -- nrows: ", nrow(filtered_data))
+    }
+    
+    if (length(filteredIDs) > 0) {
+      filtered_data <-filter(filtered_data, id %in% filteredIDs$id)
+      #message("filter stage 3 -- nrows: ", nrow(filtered_data))
     }
     
     if (input$hasDegree) {
