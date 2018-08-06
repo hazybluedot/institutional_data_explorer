@@ -35,7 +35,7 @@ col_types <- list(student_data = readr::cols_only(id = col_integer(),
                                               Gender = readr::col_factor(c("Male", "Female")),
                                               URM = readr::col_factor(c("Y", "N")),
                                               `First Generation` = readr::col_factor(c("Y", "N")),
-                                              `First Time Freshman` = readr::col_factor(c("Y", "N")),
+                                              #`First Time Freshman` = readr::col_factor(c("Y", "N")),
                                               `First Time Transfer` = readr::col_factor(c("Y", "N")),
                                               `Tuition` = readr::col_factor(c("In-State", "Out-of-State")),
                                               `Math Readiness` = readr::col_factor(c("Ready", "Not Ready", "Not Evaluated"))),
@@ -94,7 +94,7 @@ load_course_data <- function() {
            !is.na(subject), !is.na(number)) %>%
     unite(course, subject, number, remove = FALSE) %>%
     left_join(student_records %>% 
-                select(id, term, college_code, college_desc, major), by = c("id", "term")) %>%
+                select(id, term, student_level, college_code, college_desc, major), by = c("id", "term")) %>%
     distinct()
 # %>%
   # bind_rows(transfer_courses %>% rename(subject = grade_subject, 
@@ -103,7 +103,9 @@ load_course_data <- function() {
   message("writing course_data.csv")
   readr::write_csv(course_data, file_names$course_data)
   
-  college_majors <- select(student_records, college_code, college_desc, major) %>% distinct()
+  college_majors <- student_records %>% 
+    ungroup() %>%
+    select(college_code, college_desc, major) %>% distinct()
   
   message("writing college_majors.csv")
   readr::write_csv(college_majors, file_names$college_majors)
