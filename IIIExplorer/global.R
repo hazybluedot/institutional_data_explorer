@@ -12,3 +12,4 @@ source("utils.R", local = TRUE)
 
 source("CourseWidget.R", local = TRUE)
 source("GradeDistWidget.R", local = TRUE)
+source("GradeMatrix.R", local = TRUE)

@@ -116,16 +116,19 @@ width = 3
         ),
 mainPanel(
   h1(textOutput("CourseTitle")),
-  tabsetPanel(
+  fluidRow(tabsetPanel(
     id = "profile",
     tabPanel(
       "Grade Distribution",
       gradeDistributionUI("GradeDist"),
       value = "grades"
-    )#,
+    ),
+    tabPanel("Grade Matrix", 
+             gradeMatrixUI("GradeMatrix"), 
+             value = "grade_matrix")
     #tabPanel("Predictors of Success", successAnalysisUI("SuccessAnalysis"), value = "success")
-  ),
-  tabsetPanel(
+  )),
+  fluidRow(tabsetPanel(
     tabPanel(
       "Taken Before",
       courseWidgetUI("CoursesBefore", "Taken Before")
@@ -136,7 +139,7 @@ mainPanel(
   DT::dataTableOutput("DegreesAfter"),
   tableOutput("memUsage"),
   width = 9
-)
+))
     )
       )
 }

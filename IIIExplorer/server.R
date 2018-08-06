@@ -240,6 +240,11 @@ shinyServer(function(input, output, session) {
                                profile_course_first_instance,
                                reactive(input$groupBy))
   
+  callModule(gradeMatrix, "GradeMatrix", 
+             courses_with_profile, 
+             profile_course_first_instance, 
+             reactive(vals$grouping_course))
+  
   #output$status  <- renderPrint(paste0(neighbor_before(), " selected"))
   
   output$DegreesAfter <- DT::renderDataTable({
