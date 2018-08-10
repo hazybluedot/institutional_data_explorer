@@ -20,7 +20,7 @@ gradeMatrixUI <- function(id, label = "Grade Matrix") {
   ns <- NS(id)
   tagList(
     #tableOutput(ns("GradeMatrix")),
-    DT::dataTableOutput(ns("GradeMatrix"), height = "400px"),
+    DT::dataTableOutput(ns("GradeMatrix")),
     uiOutput(ns("DataDescription"))
   )
 }
@@ -46,10 +46,12 @@ gradeMatrix <- function(input, output, session, courses_with_profile, profile_co
   
   output$ProfileCourse <- renderText(profile_course())
   output$DataDescription <- renderUI({
-    p("These data are constructed by taking the last grade received in ", 
-           cross_course(), " and the grade from the first attempt at ", 
-           profile_course(), ".")
-    
+    if (!is.null(cross_course()) & !is.null(profile_course())) {
+      p("These data are constructed by taking the last grade received in ", 
+        cross_course(), " before the student's first attempt at ", 
+        profile_course(), ".")
+      
+    }
   })
   output$GradeMatrix <- DT::renderDataTable({
     shiny::validate(need(profile_course(), "Select a profile course to analyze."),

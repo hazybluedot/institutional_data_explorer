@@ -15,12 +15,37 @@ currentYear <- as.numeric(format(Sys.Date(), "%Y"))
 #shinyUI(
 function(request) {
   fluidPage(
-    "Institutional Records Explorer",
+    tags$head(
+      tags$style(HTML("
+    .shiny-output-error-validation {
+      height: 2ex;
+    }
+
+    #loadmessage {
+	    position: fixed;
+	    top: 0px;
+          left: 0px;
+          width: 100%;
+          padding: 5px 0px 5px 0px;
+          text-align: center;
+          font-weight: bold;
+          font-size: 100%;
+          color: #000000;
+          background-color: #91bfdb;
+          z-index: 105;
+    }
+
+    .datatables {
+        min-height: 7em;
+    }
+    ")),
+      #includeScript(system.file('www', 'prettyterm.js'))
+      tags$link(rel = "styelsheet", type = "text/css", href = "stylesheet.css"),
+      tags$script(src = "prettyterms.js", type = "text/javascript")),
+
+    title = "Institutional Records Explorer",
     theme = shinytheme("united"),
     #tabPanel("Course",
-    tags$head(
-      tags$link(rel = "styelsheet", type = "text/css", href = "styleshee.css"),
-      tags$script(src = "prettyterm.js", type = "text/javascript")),
     sidebarLayout(
       sidebarPanel(
         conditionalPanel(condition = "$('html').hasClass('shiny-busy')",
