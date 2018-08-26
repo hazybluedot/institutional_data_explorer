@@ -1,3 +1,5 @@
+library("sjPlot")
+
 grade_matrix <- function(course_data, profile_course, cross_course) {
   dd <- course_data %>%
     filter(course %in% c(profile_course, cross_course),
@@ -10,16 +12,18 @@ grade_matrix <- function(course_data, profile_course, cross_course) {
     spread(course, first_grade)
   #message("Filtered data contains ", n_distinct(dd$id), " unique ids.")
   #print(str(dd))
-  f <- paste("~", cross_course, " + ", profile_course)
-  #message("creating crosstable with formula ", f)
-  xtabs(as.formula(f), data = dd)
-  #with(dd, table(get(cross_course), get(profile_course)))
+  sjt.xtab(dd[[cross_course]], dd[[profile_course]],
+           show.col.prc = TRUE,
+           show.summary = FALSE,
+           show.na = FALSE,
+           use.viewer = TRUE,
+           remove.spaces = TRUE)  
 }
 
 gradeMatrixUI <- function(id, label = "Grade Matrix") {
   ns <- NS(id)
   tagList(
-    DT::dataTableOutput(ns("GradeMatrix")),
+    uiOutput(ns("GradeMatrix")),
     uiOutput(ns("DataDescription"))
   )
 }
@@ -53,35 +57,14 @@ gradeMatrix <- function(input, output, session, courses_with_profile, profile_co
     }
   })
   
-  output$GradeMatrix <- DT::renderDataTable({
+  output$GradeMatrix <- renderUI({
       shiny::validate(need(profile_course(), "Select a profile course to analyze."),
                     need(cross_course(), "Select a course to compare with."))
     
     tbl <- grade_matrix(course_data(), profile_course(), cross_course())
-    datatable(as.data.frame.matrix(tbl),
-              options = list(
-              dom = "t",
-              searching = FALSE,
-              lengthChange = FALSE,
-              initComplete = JS(
-                          "function(settings, json) {",
-                            "this.api().columns('.sorting').every(function(){",
-                              "var column = this;",
-                              #"console.log('got stuffs: ' + column.data());",
-                              "var sum = column.data().reduce(function(a, b) {",
-                                "a = parseInt(a, 10);",
-                                "if(isNaN(a)){ a = 0; }",
-                                "b = parseInt(b, 10);",
-                                "if(isNaN(b)){ b = 0; }",
-                                "return (a + b);",
-                              "});",
-
-                            "$(column.footer()).html(sum);",
-                            "console.log('Sum: ' + sum);",
-
-                          "});",
-                          "}")))
-  }, include.rownames = TRUE, server = FALSE)  
+    return(HTML(as.character(tbl)))
+    
+  })
 }
 
 #tbl <- grade_matrix(course_data, "ESM_2204", "ESM_2104")
