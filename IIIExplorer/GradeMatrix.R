@@ -63,15 +63,27 @@ gradeMatrix <- function(input, output, session, courses_with_profile, profile_co
               options = list(
               dom = "t",
               searching = FALSE,
-              lengthChange = FALSE),
-              callback = JS("var tips = ['First row name', 'Second row name', 'Third row name',
-                                    'Fourth row name', 'Fifth row name'],
-                                    firstColumn = $('#tbl tr td:first-child');
-                                    for (var i = 0; i < tips.length; i++) {
-                                    $(firstColumn[i]).attr('title', tips[i]);
-                                    }"))
+              lengthChange = FALSE,
+              initComplete = JS(
+                          "function(settings, json) {",
+                            "this.api().columns('.sorting').every(function(){",
+                              "var column = this;",
+                              #"console.log('got stuffs: ' + column.data());",
+                              "var sum = column.data().reduce(function(a, b) {",
+                                "a = parseInt(a, 10);",
+                                "if(isNaN(a)){ a = 0; }",
+                                "b = parseInt(b, 10);",
+                                "if(isNaN(b)){ b = 0; }",
+                                "return (a + b);",
+                              "});",
+
+                            "$(column.footer()).html(sum);",
+                            "console.log('Sum: ' + sum);",
+
+                          "});",
+                          "}")))
   }, include.rownames = TRUE, server = FALSE)  
 }
 
-tbl <- grade_matrix(course_data, "ESM_2204", "ESM_2104")
+#tbl <- grade_matrix(course_data, "ESM_2204", "ESM_2104")
 
