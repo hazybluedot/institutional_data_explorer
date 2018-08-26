@@ -11,3 +11,8 @@
         background-color: #91bfdb;
         z-index: 105;
 }
+
+.shiny-output-error-validation {
+    color: red;
+    height: 2ex;
+}
