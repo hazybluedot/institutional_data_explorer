@@ -8,8 +8,8 @@ grade_matrix <- function(course_data, profile_course, cross_course) {
     mutate(first_grade = paste0(course, " ", collapse_letter_grade(first_grade))) %>%
     droplevels() %>%
     spread(course, first_grade)
-  message("Filtered data contains ", n_distinct(dd$id), " unique ids.")
-  print(str(dd))
+  #message("Filtered data contains ", n_distinct(dd$id), " unique ids.")
+  #print(str(dd))
   f <- paste("~", cross_course, " + ", profile_course)
   message("creating crosstable with formula ", f)
   xtabs(as.formula(f), data = dd)
@@ -19,8 +19,7 @@ grade_matrix <- function(course_data, profile_course, cross_course) {
 gradeMatrixUI <- function(id, label = "Grade Matrix") {
   ns <- NS(id)
   tagList(
-    #tableOutput(ns("GradeMatrix")),
-    DT::dataTableOutput(ns("GradeMatrix")),
+    tableOutput(ns("GradeMatrix")),
     uiOutput(ns("DataDescription"))
   )
 }
@@ -32,7 +31,7 @@ gradeMatrix <- function(input, output, session, courses_with_profile, profile_co
   course_data <- reactive({
     cd <- bind_rows(
       courses_with_profile() %>% 
-        dplyr::filter(course == cross_course(), when == "before") %>%
+        dplyr::filter(course == cross_course(), when %in% c("before", "with")) %>%
         group_by(id, course) %>%
         # use grade from last attempt taken before profile
         dplyr::summarize(final_grade = last(final_grade, order_by = "term")) %>% 
@@ -53,25 +52,19 @@ gradeMatrix <- function(input, output, session, courses_with_profile, profile_co
       
     }
   })
-  output$GradeMatrix <- DT::renderDataTable({
+  
+  output$GradeMatrix <- renderTable({
     shiny::validate(need(profile_course(), "Select a profile course to analyze."),
                     need(cross_course(), "Select a course to compare with."))
     
     #crossTable()
     tbl <- grade_matrix(course_data(), profile_course(), cross_course())
-    datatable(as.data.frame.matrix(tbl),
-              options = list(
-              dom = "t",
-              searching = FALSE,
-              lengthChange = FALSE),
-              callback = JS("var tips = ['First row name', 'Second row name', 'Third row name',
-                                    'Fourth row name', 'Fifth row name'],
-                                    firstColumn = $('#tbl tr td:first-child');
-                                    for (var i = 0; i < tips.length; i++) {
-                                    $(firstColumn[i]).attr('title', tips[i]);
-                                    }"))
-  }, include.rownames = TRUE, server = FALSE)  
+    
+    totals <- colSums(totals)
+    
+    as.data.frame.matrix(tbl)
+  })
 }
 
-tbl <- grade_matrix(course_data, "ESM_2204", "ESM_2104")
+#tbl <- grade_matrix(course_data, "ESM_2204", "ESM_2104")
 
