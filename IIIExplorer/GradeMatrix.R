@@ -47,7 +47,7 @@ gradeMatrix <- function(input, output, session, courses_with_profile, profile_co
   output$DataDescription <- renderUI({
     if (!is.null(cross_course()) & !is.null(profile_course())) {
       p("These data are constructed by taking the last grade received in ", 
-        cross_course(), " before the student's first attempt at ", 
+        cross_course(), " before or during the student's first attempt at ", 
         profile_course(), ".")
       
     }
