@@ -31,11 +31,12 @@ RUN R -e "install.packages(c('tidyverse', 'DT', 'rms', 'shinythemes', 'devtools'
 RUN R -e "devtools::install_github('hazybluedot/ShinySky'); devtools::install_github('hazybluedot/racadia')"
 
 # copy the app to the image
-RUN mkdir /root/deepr /root/data /root/IIIExplorer
-COPY deepr /root/deepr
+RUN mkdir /root/deepr /root/data /root/vtir /root/IIIExplorer
+COPY local/deepr /root/deepr
+COPY local/vtir /root/vtir
 # COPY data /root/data
 
-RUN R -e "devtools::install('/root/deepr')"
+RUN R -e "devtools::install('/root/deepr'); devtools::install('/root/vtir')"
 
 COPY IIIExplorer /root/IIIExplorer
 
