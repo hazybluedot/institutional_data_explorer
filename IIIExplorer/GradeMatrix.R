@@ -58,13 +58,27 @@ gradeMatrix <- function(input, output, session, courses_with_profile, profile_co
                     need(cross_course(), "Select a course to compare with."))
     
     #crossTable()
-    tbl <- grade_matrix(course_data(), profile_course(), cross_course())
+    tbl <- as.data.frame(grade_matrix(course_data(), profile_course(), cross_course()))
+    totals <- tbl %>% group_by_at(profile_course()) %>% summarize(colTotal = sum(Freq))
+    #totals <- colSums(tbl)
     
-    totals <- colSums(totals)
+    #as.data.frame.matrix(tbl)
+    # left_join(tbl, totals, by = "ESM_2204") %>% 
+    #   mutate(pct = Freq/colTotal, disp = paste0(Freq, ' (', round(pct,2), ')')) %>% 
+    #   select(-Freq, -colTotal, -pct) %>% spread(ESM_2204, disp) %>%
+    #   rbind(totals %>% spread(ESM_2204, colTotal))
     
-    as.data.frame.matrix(tbl)
+    tbl  %>% group_by_at(profile_course()) %>% 
+      mutate(percent = paste0('(', format(round(100 * Freq / sum(Freq), 2), nsmall = 2), ')'),
+             pdisp = "(%)") %>% 
+      unite(profile_course(), profile_course(), pdisp, sep = " ") %>%
+      unite(disp, Freq, percent, sep = " ") %>% 
+      spread(2, disp) %>% 
+      mutate_at(1, as.character) %>% 
+      rbind(c("Total", t(totals)[2,]))
   })
 }
 
-#tbl <- grade_matrix(course_data, "ESM_2204", "ESM_2104")
+#tbl <- as.data.frame(grade_matrix(course_data, "ESM_2204", "ESM_2104"))
+#totals <- tbl %>% group_by_at("ESM_2204") %>% summarize(colTotal = sum(Freq))
 
